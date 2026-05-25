@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider             = "prisma-client-py"
+  recursive_type_depth = 5
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ScanStatus {
+  DRAFT
+  UPLOADED
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum HomebaseType {
+  RUMAH_SAKIT
+  KLINIK
+  LAINNYA
+}
+
+// 1. Model untuk Pengguna Aplikasi (Dokter Gigi)
+model User {
+  id  String @id @default(cuid())
+  email String @unique
+  password String
+  fullname String
+  phone String?
+  position String? @default("Dokter Gigi")
+  role String @default("DOKTER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  //Relasi: Satu dokter bisa menangani banyak pasien dan melakukan banyak scan
+  patients Patient[]
+  scans ScanHistory[]
+}
+
+// 2. Model untuk Data Pasien
+model Patient {
+  id String @id @default(cuid())
+  medicalId String @unique
+  name String
+  age Int?
+  gender String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relasi: Pasien didaftarkan/ditangani oleh User (Dokter)
+  doctorId String
+  doctor User @relation(fields: [doctorId], references: [id])
+
+  // Relasi: Satu pasien bisa memiliki banyak riwayat scan
+  scans ScanHistory[]
+}
+
+// 3. Model untuk Riwayat Deteksi AI (Diperbarui)
+model ScanHistory {
+  id String @id @default(cuid())
+
+  homebaseType HomebaseType @default(RUMAH_SAKIT)
+  homebaseName String
+  homebaseAddress String
+
+  diagnosisAwal String[]
+  catatanDokter String?
+
+  filename String
+  mimeType String?
+  fileSize Int?
+  imageUrl String? // Jaga-jaga nanti gambar disimpan di Cloud Storage
+  imageSha256 String?
+
+  status ScanStatus @default(DRAFT)
+  resultLabel String?
+  resultConfidence Float?
+  predictions Json?
+  errorMessage String?
+
+  resultNumber String? @unique
+  reportPdfUrl String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  processedAt DateTime?
+
+  // Relasi ke Homebase
+  homebaseId String?
+  homebase Homebase? @relation(fields: [homebaseId], references: [id])
+
+  // Relasi ke Pasien yang difoto giginya
+  patientId String?
+  patient Patient? @relation(fields: [patientId], references: [id])
+
+  // Relasi ke Dokter yang melakukan scan
+  doctorId String
+  doctor User @relation(fields: [doctorId], references: [id])
+}
+
+// 4. Model Homebase Data RS
+model Homebase {
+  id String @id @default(cuid())
+  type HomebaseType @default(RUMAH_SAKIT)
+  name String 
+  address String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  //Relasi: Satu Homebase bisa memiliki banyak riwayat scan
+  scans ScanHistory[]
+}

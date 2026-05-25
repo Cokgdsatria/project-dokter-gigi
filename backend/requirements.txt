@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+prisma
+pydantic
+python-multipart
+python-dotenv
+inference-sdk
+python-jose[cryptography]
+bcrypt
+

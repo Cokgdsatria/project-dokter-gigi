@@ -1,0 +1,44 @@
+# Kredensial & Lingkungan Kerja Utama
+.env
+.env.local
+.env.*.local
+.envrc
+
+# Virtual Environment Python
+env/
+venv/
+ENV/
+__pycache__/
+*.pyc
+
+# Log dan File Sementara
+*.log
+.pytest_cache/
+.mypy_cache/
+
+# Prisma / Database artifacts
+prisma/migrations/
+
+# Debug artifacts
+.dbg/
+trae-debug-log-*.ndjson
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local secrets / key files
+*.pem
+*.key
+*.p12
+
+# Python tooling
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+AGENT.md
