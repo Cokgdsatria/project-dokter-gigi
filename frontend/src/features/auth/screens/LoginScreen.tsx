@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -16,13 +15,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { login } from '@/features/auth/api/authApi';
-import { setAuthSession } from '@/features/auth/api/authSession';
-import { AppButton } from '@/shared/components/AppButton';
-import { AuthTextField } from '@/shared/components/AuthTextField';
-import { appColors } from '@/shared/theme/colors';
+import { login } from '../api/authApi';
+import { setAuthSession } from '../api/authSession';
+import { AppButton } from '../../../shared/components/AppButton';
+import { AuthTextField } from '../../../shared/components/AuthTextField';
+import { appColors } from '../../../shared/theme/colors';
 
-const logo = require('@/assets/logo/logo_CekGigi.png');
+const logo = require('../../../../assets/logo/logo_CekGigi.png');
 const LOGO_ASPECT_RATIO = 102 / 106;
 
 export function LoginScreen() {
@@ -48,8 +47,8 @@ export function LoginScreen() {
       setIsSubmitting(true);
       setErrorMessage('');
       const response = await login({ email: email.trim(), password });
-      setAuthSession(response.access_token, response.token_type);
-      Alert.alert('Login berhasil', 'Token berhasil diterima dari backend.');
+      setAuthSession(response.access_token, response.token_type, response.user);
+      router.replace('/dashboard');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Login gagal');
     } finally {
@@ -241,3 +240,5 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
 });
+
+

@@ -1,27 +1,32 @@
 ﻿import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { appColors } from '../theme/colors';
+import { appColors } from '../../../shared/theme/colors';
 
-type AuthSelectFieldProps = {
+type DiagnosisSelectFieldProps = {
   label: string;
   value: string;
   options: string[];
+  required?: boolean;
   isOpen: boolean;
   onToggle: () => void;
   onSelect: (value: string) => void;
 };
 
-export function AuthSelectField({
+export function DiagnosisSelectField({
   label,
   value,
   options,
+  required = false,
   isOpen,
   onToggle,
   onSelect,
-}: AuthSelectFieldProps) {
+}: DiagnosisSelectFieldProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label}>
+        {label}
+        {required ? <Text style={styles.required}>*</Text> : null}
+      </Text>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: isOpen }}
@@ -30,7 +35,6 @@ export function AuthSelectField({
         <Text style={styles.value}>{value}</Text>
         <View style={[styles.chevron, isOpen && styles.chevronOpen]} />
       </Pressable>
-
       {isOpen ? (
         <View style={styles.dropdown}>
           {options.map((option) => (
@@ -50,27 +54,31 @@ export function AuthSelectField({
 
 const styles = StyleSheet.create({
   container: {
-    gap: 8,
+    gap: 10,
   },
   label: {
     color: '#0A0A0A',
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 19,
+    fontWeight: '800',
+  },
+  required: {
+    color: '#E0182D',
   },
   select: {
-    height: 48,
+    minHeight: 60,
     borderWidth: 2,
-    borderColor: appColors.aquaStrong,
-    borderRadius: 4,
-    paddingHorizontal: 14,
+    borderColor: appColors.blue,
+    borderRadius: 8,
+    paddingHorizontal: 30,
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: appColors.white,
   },
   value: {
-    color: '#222222',
+    color: '#0A0A0A',
     fontSize: 20,
+    fontWeight: '500',
   },
   chevron: {
     width: 18,
@@ -87,7 +95,7 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     paddingTop: 2,
-    gap: 8,
+    gap: 14,
   },
   option: {
     paddingVertical: 2,
@@ -98,11 +106,11 @@ const styles = StyleSheet.create({
   },
   optionText: {
     color: '#0A0A0A',
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '500',
   },
   pressed: {
     opacity: 0.78,
   },
 });
-
 

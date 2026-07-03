@@ -1,19 +1,22 @@
-﻿import { apiRequest } from '@/shared/api/client';
+﻿import { apiRequest } from '../../../shared/api/client';
+
+export type AuthUser = {
+  id: string;
+  email: string;
+  fullname: string;
+  phone?: string | null;
+  position?: string | null;
+  role: string;
+};
 
 type TokenResponse = {
   access_token: string;
   token_type: string;
+  user?: AuthUser | null;
 };
 
 type RegisterResponse = TokenResponse & {
-  user: {
-    id: string;
-    email: string;
-    fullname: string;
-    phone?: string | null;
-    position?: string | null;
-    role: string;
-  };
+  user: AuthUser;
 };
 
 type RegisterPayload = {
@@ -43,3 +46,4 @@ export async function register(payload: RegisterPayload) {
     body: JSON.stringify(payload),
   });
 }
+

@@ -4,10 +4,10 @@ import { StatusBar } from 'expo-status-bar';
 import { Image, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppButton } from '@/shared/components/AppButton';
-import { appColors } from '@/shared/theme/colors';
+import { AppButton } from '../../../shared/components/AppButton';
+import { appColors } from '../../../shared/theme/colors';
 
-const logo = require('@/assets/logo/logo_CekGigi.png');
+const logo = require('../../../../assets/logo/logo_CekGigi.png');
 const LOGO_ASPECT_RATIO = 102 / 106;
 
 export function LandingScreen() {
@@ -82,3 +82,4 @@ const styles = StyleSheet.create({
     gap: 42,
   },
 });
+
