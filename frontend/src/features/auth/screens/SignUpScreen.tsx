@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -16,14 +15,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { register } from '@/features/auth/api/authApi';
-import { setAuthSession } from '@/features/auth/api/authSession';
-import { AppButton } from '@/shared/components/AppButton';
-import { AuthSelectField } from '@/shared/components/AuthSelectField';
-import { AuthTextField } from '@/shared/components/AuthTextField';
-import { appColors } from '@/shared/theme/colors';
+import { register } from '../api/authApi';
+import { AppButton } from '../../../shared/components/AppButton';
+import { AuthSelectField } from '../../../shared/components/AuthSelectField';
+import { AuthTextField } from '../../../shared/components/AuthTextField';
+import { appColors } from '../../../shared/theme/colors';
 
-const logo = require('@/assets/logo/logo_CekGigi.png');
+const logo = require('../../../../assets/logo/logo_CekGigi.png');
 const LOGO_ASPECT_RATIO = 102 / 106;
 const POSITION_OPTIONS = ['Dokter Gigi', 'Dokter Spesialis', 'Medical Student'];
 
@@ -63,15 +61,14 @@ export function SignUpScreen() {
     try {
       setIsSubmitting(true);
       setErrorMessage('');
-      const response = await register({
+      await register({
         email: email.trim(),
         password,
         fullname: name.trim(),
         phone: phone.trim(),
         position,
       });
-      setAuthSession(response.access_token, response.token_type);
-      Alert.alert('Register berhasil', 'Akun berhasil dibuat dan token diterima dari backend.');
+      router.replace('/login');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Register gagal');
     } finally {
@@ -289,3 +286,5 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
 });
+
+

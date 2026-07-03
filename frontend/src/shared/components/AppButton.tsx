@@ -7,7 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { appColors } from '@/shared/theme/colors';
+import { appColors } from '../theme/colors';
 
 type AppButtonProps = PressableProps & {
   title: string;
@@ -93,3 +93,5 @@ const styles = StyleSheet.create({
     color: '#2398C9',
   },
 });
+
+

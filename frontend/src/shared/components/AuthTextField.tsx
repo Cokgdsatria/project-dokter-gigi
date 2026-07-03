@@ -1,6 +1,6 @@
 ﻿import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { appColors } from '@/shared/theme/colors';
+import { appColors } from '../theme/colors';
 
 type AuthTextFieldProps = {
   label: string;
@@ -120,3 +120,5 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-35deg' }],
   },
 });
+
+
