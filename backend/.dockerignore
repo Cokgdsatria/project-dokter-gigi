@@ -1,0 +1,14 @@
+.env
+.env.*
+env/
+venv/
+ENV/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.git/
+.gitignore
+README_DEPLOY.md
+AGENT.md
