@@ -16,6 +16,17 @@ def create_auth_token(user_id: str) -> str:
     return create_access_token(data={"sub": user_id}, expires_delta=access_token_expires)
 
 
+def serialize_user(user):
+    return {
+        "id": user.id,
+        "email": user.email,
+        "fullname": user.fullname,
+        "phone": user.phone,
+        "position": user.position,
+        "role": user.role,
+    }
+
+
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(payload: RegisterRequest):
     email = payload.email.strip().lower()
@@ -64,14 +75,7 @@ async def register_user(payload: RegisterRequest):
     access_token = create_auth_token(user.id)
 
     return {
-        "user": {
-            "id": user.id,
-            "email": user.email,
-            "fullname": user.fullname,
-            "phone": user.phone,
-            "position": user.position,
-            "role": user.role,
-        },
+        "user": serialize_user(user),
         "access_token": access_token,
         "token_type": "bearer",
     }
@@ -87,4 +91,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
 
     access_token = create_auth_token(user.id)
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": serialize_user(user),
+    }

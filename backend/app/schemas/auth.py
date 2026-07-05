@@ -2,10 +2,6 @@
 
 from pydantic import BaseModel
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
 class TokenData(BaseModel):
     id: str
 
@@ -23,6 +19,11 @@ class UserResponse(BaseModel):
     phone: Optional[str] = None
     position: Optional[str] = None
     role: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    user: Optional[UserResponse] = None
 
 class RegisterResponse(BaseModel):
     user: UserResponse
