@@ -31,7 +31,7 @@ Folder ini disiapkan untuk deploy backend FastAPI ke Railway memakai Nixpacks.
 Railway bisa memakai `Procfile` atau `nixpacks.toml` yang sudah ada. Command production:
 
 ```bash
-prisma generate && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+prisma generate && uvicorn app.main:app --host 0.0.0.0 --port 8080
 ```
 
 ## Prisma

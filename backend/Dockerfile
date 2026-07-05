@@ -16,4 +16,6 @@ RUN python -m pip install --upgrade pip \
 
 COPY . .
 
-CMD ["sh", "-c", "prisma generate && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+EXPOSE 8080
+
+CMD ["sh", "-c", "prisma generate && uvicorn app.main:app --host 0.0.0.0 --port 8080"]
