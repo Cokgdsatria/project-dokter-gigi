@@ -4,7 +4,7 @@ prisma
 pydantic
 python-multipart
 python-dotenv
-inference-sdk
+inference
 python-jose[cryptography]
 bcrypt
 
