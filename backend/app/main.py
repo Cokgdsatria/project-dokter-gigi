@@ -21,6 +21,11 @@ app.include_router(diagnose.router, prefix="/api/v1", tags=["Diagnosis"])
 app.include_router(history.router, prefix="/api/v1", tags=["History"])
 app.include_router(patients.router, prefix="/api/v1", tags=["Patients"])
 
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "service": settings.PROJECT_TITLE}
+
 @app.on_event("startup")
 async def startup():
     trace_id = str(uuid.uuid4())

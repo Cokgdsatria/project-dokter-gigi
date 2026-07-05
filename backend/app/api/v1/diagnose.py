@@ -1,4 +1,5 @@
-import hashlib
+﻿import hashlib
+import json
 import uuid
 from typing import Optional, List, Dict, Any
 
@@ -9,9 +10,23 @@ from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.telemetry import dbg_emit
 from app.database.db import db
-from app.services.dental_service import process_inference
+from app.services.dental_service import process_inference, normalize_predictions, get_prediction_image_size
 
 router = APIRouter()
+
+
+def normalize_diagnosis_awal(diagnosis_awal: List[str]) -> List[str]:
+    if len(diagnosis_awal) == 1:
+        raw_value = diagnosis_awal[0].strip()
+        if raw_value.startswith("["):
+            try:
+                parsed_value = json.loads(raw_value)
+                if isinstance(parsed_value, list):
+                    return [str(item).strip() for item in parsed_value if str(item).strip()]
+            except json.JSONDecodeError:
+                pass
+
+    return [diagnosis.strip() for diagnosis in diagnosis_awal if diagnosis and diagnosis.strip()]
 
 
 @router.post("/diagnose")
@@ -42,7 +57,7 @@ async def process_dental_diagnosis(
         if normalized_homebase_type not in {"RUMAH_SAKIT", "KLINIK", "LAINNYA"}:
             raise HTTPException(status_code=400, detail="homebaseType tidak valid")
 
-        normalized_diagnosis = [d.strip() for d in (diagnosisAwal or []) if d and d.strip()]
+        normalized_diagnosis = normalize_diagnosis_awal(diagnosisAwal or [])
         if not normalized_diagnosis:
             raise HTTPException(status_code=400, detail="diagnosisAwal minimal 1 item")
 
@@ -93,11 +108,16 @@ async def process_dental_diagnosis(
 
         saved_scan = await db.scanhistory.create(data=create_data)
 
+        image_size = get_prediction_image_size(predictions_for_db)
+
         response_data: Dict[str, Any] = {
             "id": saved_scan.id,
             "status": saved_scan.status,
             "resultLabel": saved_scan.resultLabel,
             "resultConfidence": saved_scan.resultConfidence,
+            "imageWidth": image_size["width"],
+            "imageHeight": image_size["height"],
+            "predictions": normalize_predictions(predictions_for_db),
         }
         if status != "DONE" and settings.DEBUG:
             response_data["errorMessage"] = saved_scan.errorMessage
