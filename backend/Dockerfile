@@ -19,4 +19,4 @@ RUN prisma generate
 
 EXPOSE 8080
 
-CMD ["uvicorn", "app.entrypoint:app", "--host", "0.0.0.0", "--port", "8080", "--lifespan", "off"]
+CMD ["sh", "-c", "prisma db push --skip-generate || echo 'Prisma db push failed; starting API anyway'; exec uvicorn app.entrypoint:app --host 0.0.0.0 --port 8080 --lifespan off"]
