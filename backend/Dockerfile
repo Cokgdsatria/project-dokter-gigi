@@ -18,4 +18,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "prisma generate && uvicorn app.main:app --host 0.0.0.0 --port 8080"]
+CMD ["sh", "-c", "prisma generate && uvicorn app.entrypoint:app --host 0.0.0.0 --port 8080"]
