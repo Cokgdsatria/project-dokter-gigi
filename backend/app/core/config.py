@@ -6,6 +6,14 @@ from typing import Set, List
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 load_dotenv(dotenv_path=BASE_DIR / ".env")
 
+
+def env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 class Settings:
     PROJECT_TITLE: str = "Dental Lesion Detection API"
     SECRET_KEY : str = os.getenv("SECRET_KEY", "super-secret-key-ganti-di-production")
@@ -17,7 +25,10 @@ class Settings:
     ROBOFLOW_MODEL_ID: str = os.getenv("ROBOFLOW_MODEL_ID", "new-dental-dataset-3o8vv/6")
 
     MAX_UPLOAD_BYTES: int = int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))
-    DEBUG: bool = os.getenv("DEBUG", "").lower() in {"1", "true", "yes"}
+    DEBUG: bool = env_bool("DEBUG")
+    CONNECT_DB_ON_STARTUP: bool = env_bool("CONNECT_DB_ON_STARTUP")
+    REQUIRE_DB_ON_STARTUP: bool = env_bool("REQUIRE_DB_ON_STARTUP")
+    DB_CONNECT_TIMEOUT_SECONDS: float = float(os.getenv("DB_CONNECT_TIMEOUT_SECONDS", "5"))
 
     @property
     def ALLOWED_IMAGE_MIME(self) -> Set[str]:
