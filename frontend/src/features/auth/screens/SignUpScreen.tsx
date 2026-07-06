@@ -27,11 +27,11 @@ const POSITION_OPTIONS = ['Dokter Gigi', 'Dokter Spesialis', 'Medical Student'];
 
 export function SignUpScreen() {
   const { width, height } = useWindowDimensions();
-  const [email, setEmail] = useState('RudiArdian@gmail.com');
-  const [name, setName] = useState('Rudi Ardian');
-  const [phone, setPhone] = useState('088217789502');
-  const [password, setPassword] = useState('password123');
-  const [confirmPassword, setConfirmPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [position, setPosition] = useState('-');
   const [isPositionOpen, setIsPositionOpen] = useState(false);
   const [isPasswordHidden, setIsPasswordHidden] = useState(true);
@@ -124,19 +124,26 @@ export function SignUpScreen() {
                   label="Email"
                   value={email}
                   onChangeText={setEmail}
+                  placeholder="Nama@gmail.com"
                   keyboardType="email-address"
                 />
-                <AuthTextField label="Nama" value={name} onChangeText={setName} />
+                <AuthTextField 
+                label="Nama" 
+                value={name} 
+                onChangeText={setName} 
+                placeholder="Rudi Ardian" />
                 <AuthTextField
                   label="No.Hp"
                   value={phone}
                   onChangeText={setPhone}
+                  placeholder="088217789502"
                   keyboardType="phone-pad"
                 />
                 <AuthTextField
                   label="Password"
                   value={password}
                   onChangeText={setPassword}
+                  placeholder="••••••••"
                   secureTextEntry={isPasswordHidden}
                   showSecureToggle
                   onToggleSecure={() => setIsPasswordHidden((current) => !current)}
@@ -145,6 +152,7 @@ export function SignUpScreen() {
                   label="Confirm Password"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
+                  placeholder="••••••••"
                   secureTextEntry={isConfirmPasswordHidden}
                   showSecureToggle
                   onToggleSecure={() => setIsConfirmPasswordHidden((current) => !current)}

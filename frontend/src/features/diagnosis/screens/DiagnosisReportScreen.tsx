@@ -9,6 +9,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getDiagnosisReport } from '../state/diagnosisReport';
 import { AppButton } from '../../../shared/components/AppButton';
 import { appColors } from '../../../shared/theme/colors';
+import Svg, { Polygon } from 'react-native-svg';
+import type { DiagnosisPrediction } from '../api/diagnosisApi';
 
 const logo = require('../../../../assets/logo/logo_CekGigi.png');
 
@@ -186,7 +188,12 @@ export function DiagnosisReportScreen() {
             <Text style={[styles.paperText, styles.addressText]}>Alamat Homebase: {currentReport.draft.homebaseAddress}</Text>
           </View>
 
-          <Image source={{ uri: currentReport.draft.imageUri }} resizeMode="cover" style={styles.xrayImage} />
+          <SegmentedXrayImage
+            imageUri={currentReport.draft.imageUri}
+            predictions={currentReport.response.data.predictions ?? []}
+            imageWidth={currentReport.response.data.imageWidth}
+            imageHeight={currentReport.response.data.imageHeight}
+          />
           <Text style={styles.imageNumber}>No. {currentReport.resultNumber}</Text>
           <Text style={styles.paperResultTitle}>Hasil :</Text>
           <Text style={styles.paperResult}>{resultLabel}</Text>
@@ -214,6 +221,58 @@ export function DiagnosisReportScreen() {
         </LinearGradient>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function SegmentedXrayImage({
+  imageUri,
+  predictions,
+  imageWidth,
+  imageHeight,
+}: {
+  imageUri: string;
+  predictions: DiagnosisPrediction[];
+  imageWidth?: number | null;
+  imageHeight?: number | null;
+}) {
+  const displayWidth = 260;
+  const displayHeight = 150;
+  const sourceWidth = imageWidth || 640;
+  const sourceHeight = imageHeight || 640;
+
+  return (
+    <View style={styles.segmentedImageWrap}>
+      <Image
+        source={{ uri: imageUri }}
+        resizeMode="contain"
+        style={styles.segmentedImage}
+      />
+
+      <Svg 
+        width={displayWidth} 
+        height={displayHeight} 
+        viewBox={`0 0 ${sourceWidth} ${sourceHeight}`}
+        style={StyleSheet.absoluteFill}>
+        {predictions.map((prediction, index) => {
+          const points = prediction.points ?? [];
+          if (!points.length) {
+            return null;
+          }
+
+          const pointString = points.map((point) => `${point.x},${point.y}`).join(' ');
+
+          return (
+            <Polygon
+              key={prediction.detectionId ?? `${prediction.class}-${index}`}
+              points={pointString}
+              fill="rgba(52, 199, 201, 0.28)"
+              stroke={appColors.blue}
+              strokeWidth={2}
+            />
+          );
+        })}
+      </Svg>
+    </View>
   );
 }
 
@@ -248,21 +307,30 @@ const styles = StyleSheet.create({
     left: 0,
     top: 4,
     zIndex: 10,
-    width: 82,
-    height: 82,
-    borderRadius: 41,
-    backgroundColor: appColors.aqua,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    // backgroundColor: appColors.aqua,
+    // alignItems: 'center',
+    // justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: appColors.blueDeep,
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.16,
+    shadowRadius: 5,
+    elevation: 4,
+
   },
   backChevron: {
-    width: 28,
-    height: 28,
-    borderLeftWidth: 5,
-    borderBottomWidth: 5,
+    width: 13,
+    height: 13,
+    borderLeftWidth: 3,
+    borderBottomWidth: 3,
     borderColor: appColors.blue,
     transform: [{ rotate: '45deg' }],
-    marginLeft: 8,
+    marginLeft: 4,
   },
   logo: {
     width: 220,
@@ -336,6 +404,18 @@ const styles = StyleSheet.create({
     height: 150,
     marginTop: 40,
     backgroundColor: '#D7EEF1',
+  },
+  segmentedImageWrap: {
+  alignSelf: 'center',
+  width: 260,
+  height: 150,
+  marginTop: 40,
+  backgroundColor: '#D7EEF1',
+  overflow: 'hidden',
+  },
+  segmentedImage: {
+  width: '100%',
+  height: '100%',
   },
   imageNumber: {
     marginTop: 8,

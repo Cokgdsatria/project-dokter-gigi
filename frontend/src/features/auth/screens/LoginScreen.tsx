@@ -26,8 +26,8 @@ const LOGO_ASPECT_RATIO = 102 / 106;
 
 export function LoginScreen() {
   const { width, height } = useWindowDimensions();
-  const [email, setEmail] = useState('Admin@gmail.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isPasswordHidden, setIsPasswordHidden] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -104,12 +104,14 @@ export function LoginScreen() {
                   label="Email"
                   value={email}
                   onChangeText={setEmail}
+                  placeholder="Admin@gmail.com"
                   keyboardType="email-address"
                 />
                 <AuthTextField
                   label="Password"
                   value={password}
                   onChangeText={setPassword}
+                  placeholder="••••••••"
                   secureTextEntry={isPasswordHidden}
                   showSecureToggle
                   onToggleSecure={() => setIsPasswordHidden((current) => !current)}
