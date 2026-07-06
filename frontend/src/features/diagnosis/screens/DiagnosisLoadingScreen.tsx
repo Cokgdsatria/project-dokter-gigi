@@ -1,7 +1,7 @@
-﻿import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useEffect } from 'react';
-import { Alert, Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -22,6 +22,7 @@ const logo = require('../../../../assets/logo/logo_CekGigi.png');
 export function DiagnosisLoadingScreen() {
   const { height } = useWindowDimensions();
   const rotation = useSharedValue(0);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     rotation.value = withRepeat(
@@ -35,21 +36,19 @@ export function DiagnosisLoadingScreen() {
   }, [rotation]);
 
   useEffect(() => {
-    let isActive = true;
+    let isMounted = true;
 
     async function runDiagnosis() {
       const draft = getCompleteDiagnosisDraft();
       if (!draft) {
-        Alert.alert('Data belum lengkap', 'Lengkapi foto rontgen, diagnosa awal, dan data homebase terlebih dahulu.');
-        router.back();
+        if (isMounted) {
+          setErrorMessage('Data belum lengkap. Lengkapi foto rontgen, diagnosa awal, dan data homebase terlebih dahulu.');
+        }
         return;
       }
 
       try {
         const result = await diagnoseDentalImage(draft);
-        if (!isActive) {
-          return;
-        }
 
         if (!result.success) {
           throw new Error(result.data?.errorMessage || result.message || 'Diagnosis gagal diproses');
@@ -57,28 +56,21 @@ export function DiagnosisLoadingScreen() {
 
         setDiagnosisReport(draft, result, getAuthSession().user);
         clearDiagnosisDraft();
-        setTimeout(() => {
-          router.replace('/diagnosis-report');
-        }, 650);
+        router.replace('/diagnosis-report');
       } catch (error) {
-        if (!isActive) {
+        if (!isMounted) {
           return;
         }
 
         const message = error instanceof Error ? error.message : 'Diagnosis gagal diproses';
-        Alert.alert('Diagnosis gagal', message, [
-          {
-            text: 'Kembali',
-            onPress: () => router.back(),
-          },
-        ]);
+        setErrorMessage(message);
       }
     }
 
     runDiagnosis();
 
     return () => {
-      isActive = false;
+      isMounted = false;
     };
   }, []);
 
@@ -107,8 +99,20 @@ export function DiagnosisLoadingScreen() {
             </LinearGradient>
           </View>
 
-          <Text style={styles.title}>Mendiagnosa Penyakit</Text>
-          <Text style={styles.subtitle}>Mohon tunggu beberapa saat...</Text>
+          <Text style={styles.title}>{errorMessage ? 'Diagnosis Gagal' : 'Mendiagnosa Penyakit'}</Text>
+          <Text style={[styles.subtitle, errorMessage && styles.errorText]}>
+            {errorMessage || 'Mohon tunggu beberapa saat...'}
+          </Text>
+
+          {errorMessage ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Kembali ke halaman sebelumnya"
+              onPress={() => router.back()}
+              style={({ pressed }) => [styles.backAction, pressed && styles.pressed]}>
+              <Text style={styles.backActionText}>Kembali</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     </SafeAreaView>
@@ -244,10 +248,26 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
   },
+  errorText: {
+    color: '#C83232',
+    lineHeight: 24,
+  },
+  backAction: {
+    marginTop: 24,
+    minWidth: 140,
+    borderRadius: 10,
+    backgroundColor: appColors.aquaStrong,
+    paddingHorizontal: 22,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  backActionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  pressed: {
+    opacity: 0.78,
+    transform: [{ scale: 0.98 }],
+  },
 });
-
-
-
-
-
-

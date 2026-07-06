@@ -1,4 +1,5 @@
-﻿import { File as ExpoFile, UploadType } from 'expo-file-system';
+import { File as ExpoFile, UploadType } from 'expo-file-system';
+import { Platform } from 'react-native';
 
 import { API_BASE_URL } from '../../../shared/api/client';
 import { getAuthSession } from '../../auth/api/authSession';
@@ -56,14 +57,66 @@ function getImageMimeType(fileName: string, fallbackMimeType?: string) {
   return 'image/jpeg';
 }
 
-export async function diagnoseDentalImage(draft: DiagnosisDraft): Promise<DiagnosisResponse> {
-  const session = getAuthSession();
-  if (!session.accessToken) {
-    throw new Error('Sesi login tidak ditemukan. Silakan login ulang.');
+function getDiagnosisParameters(draft: DiagnosisDraft, fileName: string) {
+  return {
+    homebaseType: draft.homebaseType,
+    homebaseName: draft.homebaseName,
+    homebaseAddress: draft.homebaseAddress,
+    diagnosisAwal: JSON.stringify(draft.diagnoses),
+    ...(draft.doctorNote?.trim() ? { catatanDokter: draft.doctorNote.trim() } : {}),
+    fileName,
+  };
+}
+
+async function parseDiagnosisResponse(status: number, body: string | null): Promise<DiagnosisResponse> {
+  const data = body ? JSON.parse(body) : null;
+
+  if (status < 200 || status >= 300) {
+    const detail = data?.detail ?? 'Diagnosis gagal diproses';
+    throw new Error(Array.isArray(detail) ? detail[0]?.msg ?? 'Request diagnosis tidak valid' : detail);
   }
 
-  const fileName = getImageFileName(draft.imageUri, draft.imageName);
-  const mimeType = getImageMimeType(fileName, draft.imageMimeType);
+  return data as DiagnosisResponse;
+}
+
+async function diagnoseDentalImageWeb(
+  draft: DiagnosisDraft,
+  fileName: string,
+  mimeType: string,
+  accessToken: string
+): Promise<DiagnosisResponse> {
+  const imageResponse = await fetch(draft.imageUri);
+  if (!imageResponse.ok) {
+    throw new Error('File gambar tidak bisa dibaca dari browser');
+  }
+
+  const imageBlob = await imageResponse.blob();
+  const formData = new FormData();
+  formData.append('file', imageBlob, fileName);
+
+  const parameters = getDiagnosisParameters(draft, fileName);
+  Object.entries(parameters).forEach(([key, value]) => {
+    formData.append(key, value);
+  });
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/diagnose`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      // Browser akan otomatis mengisi multipart boundary.
+    },
+    body: formData,
+  });
+
+  return parseDiagnosisResponse(response.status, await response.text());
+}
+
+async function diagnoseDentalImageNative(
+  draft: DiagnosisDraft,
+  fileName: string,
+  mimeType: string,
+  accessToken: string
+): Promise<DiagnosisResponse> {
   const imageFile = new ExpoFile(draft.imageUri);
 
   const uploadResult = await imageFile.upload(`${API_BASE_URL}/api/v1/diagnose`, {
@@ -72,24 +125,26 @@ export async function diagnoseDentalImage(draft: DiagnosisDraft): Promise<Diagno
     fieldName: 'file',
     mimeType,
     headers: {
-      Authorization: `Bearer ${session.accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
     },
-    parameters: {
-      homebaseType: draft.homebaseType,
-      homebaseName: draft.homebaseName,
-      homebaseAddress: draft.homebaseAddress,
-      diagnosisAwal: JSON.stringify(draft.diagnoses),
-      ...(draft.doctorNote?.trim() ? { catatanDokter: draft.doctorNote.trim() } : {}),
-      fileName,
-    },
+    parameters: getDiagnosisParameters(draft, fileName),
   });
 
-  const data = uploadResult.body ? JSON.parse(uploadResult.body) : null;
+  return parseDiagnosisResponse(uploadResult.status, uploadResult.body || null);
+}
 
-  if (uploadResult.status < 200 || uploadResult.status >= 300) {
-    const detail = data?.detail ?? 'Diagnosis gagal diproses';
-    throw new Error(Array.isArray(detail) ? detail[0]?.msg ?? 'Request diagnosis tidak valid' : detail);
+export async function diagnoseDentalImage(draft: DiagnosisDraft): Promise<DiagnosisResponse> {
+  const session = getAuthSession();
+  if (!session.accessToken) {
+    throw new Error('Sesi login tidak ditemukan. Silakan login ulang.');
   }
 
-  return data as DiagnosisResponse;
+  const fileName = getImageFileName(draft.imageUri, draft.imageName);
+  const mimeType = getImageMimeType(fileName, draft.imageMimeType);
+
+  if (Platform.OS === 'web') {
+    return diagnoseDentalImageWeb(draft, fileName, mimeType, session.accessToken);
+  }
+
+  return diagnoseDentalImageNative(draft, fileName, mimeType, session.accessToken);
 }
