@@ -1,13 +1,14 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "Project Dokter Gigi",
+    "slug": "project-dokter-gigi",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "project-dokter-gigi",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.satriawidnyana.projectdoktergigi",
       "icon": "./assets/expo.icon"
     },
     "android": {
@@ -17,7 +18,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.satriawidnyana.projectdoktergigi"
     },
     "web": {
       "output": "static",
@@ -40,6 +42,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1b33e4bd-7ad6-4a2a-8fb6-ecaaf6e8f94a"
+      }
+    },
+    "owner": "satriawidnyanas-team"
   }
 }

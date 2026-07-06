@@ -6,7 +6,9 @@ type AuthTextFieldProps = {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
-  keyboardType?: 'default' | 'email-address' | 'phone-pad';
+  placeholder?: string;
+  placeholderTextColor?: string;
+  keyboardType?: 'default' |  'email-address' | 'phone-pad';
   secureTextEntry?: boolean;
   onToggleSecure?: () => void;
   showSecureToggle?: boolean;
@@ -27,6 +29,8 @@ export function AuthTextField({
   label,
   value,
   onChangeText,
+  placeholder,
+  placeholderTextColor = '#9A9A9A',
   keyboardType = 'default',
   secureTextEntry = false,
   onToggleSecure,
@@ -39,6 +43,8 @@ export function AuthTextField({
         <TextInput
           value={value}
           onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={placeholderTextColor}
           keyboardType={keyboardType}
           autoCapitalize="none"
           autoCorrect={false}
@@ -105,6 +111,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  
   eyePupil: {
     width: 5,
     height: 5,

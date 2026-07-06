@@ -4,6 +4,23 @@ import { API_BASE_URL } from '../../../shared/api/client';
 import { getAuthSession } from '../../auth/api/authSession';
 import type { DiagnosisDraft } from '../state/diagnosisDraft';
 
+export type SegmentationPoint = {
+  x: number;
+  y: number;
+};
+
+export type DiagnosisPrediction = {
+  class?: string | null;
+  confidence?: number | null;
+  x?: number | null;
+  y?: number | null;
+  width?: number | null;
+  height?: number | null;
+  points?: SegmentationPoint[];
+  classId?: number | null;
+  detectionId?: string | null;
+};
+
 export type DiagnosisResponse = {
   success: boolean;
   message: string;
@@ -12,7 +29,10 @@ export type DiagnosisResponse = {
     status: 'DONE' | 'FAILED' | string;
     resultLabel?: string | null;
     resultConfidence?: number | null;
+    imageWidth?: number | null;
+    imageHeight?: number | null;
     errorMessage?: string | null;
+    predictions?: DiagnosisPrediction[];
   };
 };
 
