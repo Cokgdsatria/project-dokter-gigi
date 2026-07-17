@@ -1,4 +1,4 @@
-﻿import hashlib
+import hashlib
 import json
 import uuid
 from typing import Optional, List, Dict, Any
@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.core.telemetry import dbg_emit
 from app.database.db import db
 from app.services.dental_service import process_inference, normalize_predictions, get_prediction_image_size
+from app.services.storage_service import upload_scan_image
 
 router = APIRouter()
 
@@ -71,7 +72,14 @@ async def process_dental_diagnosis(
         if len(image_bytes) > settings.MAX_UPLOAD_BYTES:
             raise HTTPException(status_code=413, detail="Ukuran file terlalu besar")
 
+        safe_filename = file.filename or "upload.jpg"
         image_sha256 = hashlib.sha256(image_bytes).hexdigest()
+        image_url = await upload_scan_image(
+            image_bytes=image_bytes,
+            filename=safe_filename,
+            content_type=file.content_type,
+            doctor_id=current_user.id,
+        )
 
         normalized_patient_id: Optional[str] = (patientId or "").strip() or None
         if normalized_patient_id is not None and normalized_patient_id.lower() == "string":
@@ -82,10 +90,9 @@ async def process_dental_diagnosis(
                 raise HTTPException(status_code=400, detail="patientId tidak ditemukan")
 
         status, predictions_for_db, result_label, result_confidence, error_message = await process_inference(
-            image_bytes, file.filename or "upload.jpg", trace_id
+            image_bytes, safe_filename, trace_id
         )
 
-        safe_filename = file.filename or "upload.jpg"
         create_data: Dict[str, Any] = {
             "homebaseType": normalized_homebase_type,
             "homebaseName": homebaseName,
@@ -96,6 +103,7 @@ async def process_dental_diagnosis(
             "mimeType": file.content_type,
             "fileSize": len(image_bytes),
             "imageSha256": image_sha256,
+            "imageUrl": image_url,
             "status": status,
             "predictions": Json(predictions_for_db),
             "resultLabel": result_label,
@@ -117,6 +125,7 @@ async def process_dental_diagnosis(
             "resultConfidence": saved_scan.resultConfidence,
             "imageWidth": image_size["width"],
             "imageHeight": image_size["height"],
+            "imageUrl": saved_scan.imageUrl,
             "predictions": normalize_predictions(predictions_for_db),
         }
         if status != "DONE" and settings.DEBUG:

@@ -7,4 +7,5 @@ python-dotenv
 inference
 python-jose[cryptography]
 bcrypt
-
+supabase
+anyio
