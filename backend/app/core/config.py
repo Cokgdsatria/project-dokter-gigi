@@ -24,6 +24,10 @@ class Settings:
     ROBOFLOW_API_URL: str = os.getenv("ROBOFLOW_API_URL", "https://serverless.roboflow.com")
     ROBOFLOW_MODEL_ID: str = os.getenv("ROBOFLOW_MODEL_ID", "new-dental-dataset-3o8vv/6")
 
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_SERVICE_ROLE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+    SUPABASE_BUCKET: str = os.getenv("SUPABASE_BUCKET", "dental-images")
+
     MAX_UPLOAD_BYTES: int = int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))
     DEBUG: bool = env_bool("DEBUG")
     CONNECT_DB_ON_STARTUP: bool = env_bool("CONNECT_DB_ON_STARTUP")
