@@ -1,6 +1,7 @@
 import hashlib
 import json
 import uuid
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Depends
@@ -72,15 +73,6 @@ async def process_dental_diagnosis(
         if len(image_bytes) > settings.MAX_UPLOAD_BYTES:
             raise HTTPException(status_code=413, detail="Ukuran file terlalu besar")
 
-        safe_filename = file.filename or "upload.jpg"
-        image_sha256 = hashlib.sha256(image_bytes).hexdigest()
-        image_url = await upload_scan_image(
-            image_bytes=image_bytes,
-            filename=safe_filename,
-            content_type=file.content_type,
-            doctor_id=current_user.id,
-        )
-
         normalized_patient_id: Optional[str] = (patientId or "").strip() or None
         if normalized_patient_id is not None and normalized_patient_id.lower() == "string":
             normalized_patient_id = None
@@ -89,8 +81,13 @@ async def process_dental_diagnosis(
             if patient is None:
                 raise HTTPException(status_code=400, detail="patientId tidak ditemukan")
 
-        status, predictions_for_db, result_label, result_confidence, error_message = await process_inference(
-            image_bytes, safe_filename, trace_id
+        safe_filename = file.filename or "upload.jpg"
+        image_sha256 = hashlib.sha256(image_bytes).hexdigest()
+        image_url = await upload_scan_image(
+            image_bytes=image_bytes,
+            filename=safe_filename,
+            content_type=file.content_type,
+            doctor_id=current_user.id,
         )
 
         create_data: Dict[str, Any] = {
@@ -104,17 +101,34 @@ async def process_dental_diagnosis(
             "fileSize": len(image_bytes),
             "imageSha256": image_sha256,
             "imageUrl": image_url,
-            "status": status,
-            "predictions": Json(predictions_for_db),
-            "resultLabel": result_label,
-            "resultConfidence": result_confidence,
-            "errorMessage": error_message,
+            "status": "UPLOADED",
+            "predictions": Json({"predictions": []}),
             "doctorId": current_user.id,
         }
         if normalized_patient_id is not None:
             create_data["patientId"] = normalized_patient_id
 
         saved_scan = await db.scanhistory.create(data=create_data)
+        saved_scan = await db.scanhistory.update(
+            where={"id": saved_scan.id},
+            data={"status": "PROCESSING"},
+        )
+
+        status, predictions_for_db, result_label, result_confidence, error_message = await process_inference(
+            image_bytes, safe_filename, trace_id
+        )
+
+        saved_scan = await db.scanhistory.update(
+            where={"id": saved_scan.id},
+            data={
+                "status": status,
+                "predictions": Json(predictions_for_db),
+                "resultLabel": result_label,
+                "resultConfidence": result_confidence,
+                "errorMessage": error_message,
+                "processedAt": datetime.now(timezone.utc),
+            },
+        )
 
         image_size = get_prediction_image_size(predictions_for_db)
 
@@ -128,7 +142,7 @@ async def process_dental_diagnosis(
             "imageUrl": saved_scan.imageUrl,
             "predictions": normalize_predictions(predictions_for_db),
         }
-        if status != "DONE" and settings.DEBUG:
+        if status != "DONE":
             response_data["errorMessage"] = saved_scan.errorMessage
 
         return {
