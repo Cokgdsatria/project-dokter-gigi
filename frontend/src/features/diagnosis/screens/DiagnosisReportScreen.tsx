@@ -1,4 +1,4 @@
-﻿import * as Print from 'expo-print';
+import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -47,8 +47,9 @@ function buildReportHtml(report: NonNullable<ReturnType<typeof getDiagnosisRepor
   const doctorPhone = report.doctor?.phone || '-';
   const doctorPosition = report.doctor?.position || 'Dokter Gigi';
   const note = report.draft.doctorNote?.trim() || '-';
-  const imageTag = report.draft.imageUri
-    ? `<img class="xray" src="${report.draft.imageUri}" />`
+  const reportImageUri = report.response.data.imageUrl || report.draft.imageUri;
+  const imageTag = reportImageUri
+    ? `<img class="xray" src="${reportImageUri}" />`
     : '<div class="xray placeholder">Foto Rontgen</div>';
 
   return `
@@ -121,6 +122,7 @@ export function DiagnosisReportScreen() {
 
   const currentReport = report;
   const resultLabel = getResultLabel(currentReport.response.data.resultLabel);
+  const reportImageUri = currentReport.response.data.imageUrl || currentReport.draft.imageUri;
   const doctorName = getDoctorName(currentReport.doctor?.fullname);
   const doctorPosition = report.doctor?.position || 'Dokter Gigi';
   const doctorPhone = report.doctor?.phone || '-';
@@ -189,7 +191,7 @@ export function DiagnosisReportScreen() {
           </View>
 
           <SegmentedXrayImage
-            imageUri={currentReport.draft.imageUri}
+            imageUri={reportImageUri}
             predictions={currentReport.response.data.predictions ?? []}
             imageWidth={currentReport.response.data.imageWidth}
             imageHeight={currentReport.response.data.imageHeight}

@@ -32,6 +32,7 @@ export type DiagnosisResponse = {
     resultConfidence?: number | null;
     imageWidth?: number | null;
     imageHeight?: number | null;
+    imageUrl?: string | null;
     errorMessage?: string | null;
     predictions?: DiagnosisPrediction[];
   };
@@ -68,12 +69,36 @@ function getDiagnosisParameters(draft: DiagnosisDraft, fileName: string) {
   };
 }
 
+function parseJsonBody(body: string | null) {
+  if (!body) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(body);
+  } catch {
+    return null;
+  }
+}
+
+function getErrorMessage(data: any, fallback: string) {
+  const detail = data?.detail ?? data?.message ?? data?.data?.errorMessage ?? fallback;
+  if (Array.isArray(detail)) {
+    return detail[0]?.msg ?? fallback;
+  }
+
+  return typeof detail === 'string' && detail.trim() ? detail : fallback;
+}
+
 async function parseDiagnosisResponse(status: number, body: string | null): Promise<DiagnosisResponse> {
-  const data = body ? JSON.parse(body) : null;
+  const data = parseJsonBody(body);
 
   if (status < 200 || status >= 300) {
-    const detail = data?.detail ?? 'Diagnosis gagal diproses';
-    throw new Error(Array.isArray(detail) ? detail[0]?.msg ?? 'Request diagnosis tidak valid' : detail);
+    throw new Error(getErrorMessage(data, 'Diagnosis gagal diproses'));
+  }
+
+  if (!data?.success) {
+    throw new Error(getErrorMessage(data, 'Diagnosis gagal diproses'));
   }
 
   return data as DiagnosisResponse;

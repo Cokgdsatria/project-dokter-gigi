@@ -1,4 +1,4 @@
-﻿import { Platform } from 'react-native';
+import { Platform } from 'react-native';
 
 export const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
@@ -7,6 +7,27 @@ export const API_BASE_URL =
 type ApiRequestOptions = RequestInit & {
   formUrlEncoded?: boolean;
 };
+
+function parseJsonBody(text: string) {
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function getApiErrorMessage(data: any) {
+  const message = data?.detail ?? data?.message ?? 'Terjadi kesalahan pada server';
+  if (Array.isArray(message)) {
+    return message[0]?.msg ?? 'Request tidak valid';
+  }
+
+  return typeof message === 'string' && message.trim() ? message : 'Terjadi kesalahan pada server';
+}
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const { formUrlEncoded = false, headers, ...requestOptions } = options;
@@ -20,11 +41,10 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   });
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  const data = parseJsonBody(text);
 
   if (!response.ok) {
-    const message = data?.detail ?? 'Terjadi kesalahan pada server';
-    throw new Error(Array.isArray(message) ? message[0]?.msg ?? 'Request tidak valid' : message);
+    throw new Error(getApiErrorMessage(data));
   }
 
   return data as T;
