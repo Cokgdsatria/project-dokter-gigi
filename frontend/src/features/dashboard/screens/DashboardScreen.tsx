@@ -33,12 +33,17 @@ export function DashboardScreen() {
             description="Lihat Riwayat Hasil Ronsen"
             actionLabel="Lihat Riwayat"
             icon="history"
+            onPress={() => router.push('/history')}
           />
         </View>
       </View>
 
       <View style={styles.bottomNav}>
-        <Pressable style={({ pressed }) => [styles.navButton, pressed && styles.navPressed]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Buka riwayat check-up"
+          onPress={() => router.push('/history')}
+          style={({ pressed }) => [styles.navButton, pressed && styles.navPressed]}>
           <HistoryNavIcon />
         </Pressable>
         <Pressable style={({ pressed }) => [styles.navButton, pressed && styles.navPressed]}>
@@ -239,4 +244,5 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+
 

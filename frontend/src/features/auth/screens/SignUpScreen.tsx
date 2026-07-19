@@ -20,6 +20,7 @@ import { AppButton } from '../../../shared/components/AppButton';
 import { AuthSelectField } from '../../../shared/components/AuthSelectField';
 import { AuthTextField } from '../../../shared/components/AuthTextField';
 import { appColors } from '../../../shared/theme/colors';
+import { toFriendlyError } from '../../../shared/api/errorMessages'; 
 
 const logo = require('../../../../assets/logo/logo_CekGigi.png');
 const LOGO_ASPECT_RATIO = 102 / 106;
@@ -70,7 +71,7 @@ export function SignUpScreen() {
       });
       router.replace('/login');
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Register gagal');
+      setErrorMessage(toFriendlyError(error, 'Registrasi gagal. Periksa kembali data yang diisi.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -294,5 +295,6 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
 });
+
 
 
