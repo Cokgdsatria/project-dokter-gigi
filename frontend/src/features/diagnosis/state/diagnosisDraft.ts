@@ -7,6 +7,7 @@ export type DiagnosisDraft = {
   imageUri: string;
   imageName?: string;
   imageMimeType?: string;
+  imageSize?: number;
   diagnoses: string[];
   doctorNote?: string;
 };
@@ -39,3 +40,4 @@ export function getCompleteDiagnosisDraft(): DiagnosisDraft | null {
 export function clearDiagnosisDraft() {
   diagnosisDraft = {};
 }
+

@@ -30,6 +30,7 @@ export function DiagnosisDetailScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageName, setImageName] = useState<string | undefined>();
   const [imageMimeType, setImageMimeType] = useState<string | undefined>();
+  const [imageSize, setImageSize] = useState<number | undefined>();
   const [diagnoses, setDiagnoses] = useState<string[]>([]);
   const [doctorNote, setDoctorNote] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -90,10 +91,21 @@ export function DiagnosisDetailScreen() {
       return;
     }
 
+    if (imageMimeType && !['image/jpeg', 'image/png'].includes(imageMimeType)) {
+      Alert.alert('Format tidak didukung', 'Gunakan gambar JPG atau PNG.');
+      return;
+    }
+
+    if (imageSize && imageSize > 10 * 1024 * 1024) {
+      Alert.alert('File terlalu besar', 'Ukuran gambar maksimal 10 MB.');
+      return;
+    }
+
     updateDiagnosisDraft({
       imageUri,
       imageName,
       imageMimeType,
+      imageSize,
       diagnoses,
       doctorNote: doctorNote.trim(),
     });
@@ -466,6 +478,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
 });
+
 
 
 

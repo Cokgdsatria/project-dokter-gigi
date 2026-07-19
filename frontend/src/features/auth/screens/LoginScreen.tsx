@@ -20,6 +20,7 @@ import { setAuthSession } from '../api/authSession';
 import { AppButton } from '../../../shared/components/AppButton';
 import { AuthTextField } from '../../../shared/components/AuthTextField';
 import { appColors } from '../../../shared/theme/colors';
+import { toFriendlyError } from '../../../shared/api/errorMessages'; 
 
 const logo = require('../../../../assets/logo/logo_CekGigi.png');
 const LOGO_ASPECT_RATIO = 102 / 106;
@@ -50,7 +51,7 @@ export function LoginScreen() {
       setAuthSession(response.access_token, response.token_type, response.user);
       router.replace('/dashboard');
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Login gagal');
+      setErrorMessage(toFriendlyError(error, 'Login gagal. Periksa email dan password.'));
     } finally {
       setIsSubmitting(false);
     }

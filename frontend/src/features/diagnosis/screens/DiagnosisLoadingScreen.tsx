@@ -1,4 +1,4 @@
-import { LinearGradient } from 'expo-linear-gradient';
+﻿import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -16,6 +16,8 @@ import { getAuthSession } from '../../auth/api/authSession';
 import { clearDiagnosisDraft, getCompleteDiagnosisDraft } from '../state/diagnosisDraft';
 import { setDiagnosisReport } from '../state/diagnosisReport';
 import { appColors } from '../../../shared/theme/colors';
+import { toFriendlyError } from '../../../shared/api/errorMessages';
+
 
 const logo = require('../../../../assets/logo/logo_CekGigi.png');
 
@@ -58,12 +60,8 @@ export function DiagnosisLoadingScreen() {
         clearDiagnosisDraft();
         router.replace('/diagnosis-report');
       } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        const message = error instanceof Error ? error.message : 'Diagnosis gagal diproses';
-        setErrorMessage(message);
+        if (!isMounted) return;
+        setErrorMessage(toFriendlyError(error, 'Diagnosis gagal diproses.'));
       }
     }
 
@@ -271,3 +269,4 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
 });
+
