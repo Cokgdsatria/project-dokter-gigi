@@ -1,4 +1,4 @@
-import * as Print from 'expo-print';
+﻿import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -11,6 +11,10 @@ import { AppButton } from '../../../shared/components/AppButton';
 import { appColors } from '../../../shared/theme/colors';
 import Svg, { Polygon } from 'react-native-svg';
 import type { DiagnosisPrediction } from '../api/diagnosisApi';
+
+type DiagnosisReportScreenProps = {
+  backToHistory?: boolean;
+};
 
 const logo = require('../../../../assets/logo/logo_CekGigi.png');
 
@@ -102,9 +106,10 @@ function buildReportHtml(report: NonNullable<ReturnType<typeof getDiagnosisRepor
   `;
 }
 
-export function DiagnosisReportScreen() {
+export function DiagnosisReportScreen({ backToHistory = false }: DiagnosisReportScreenProps = {}) {
   const { width } = useWindowDimensions();
   const report = getDiagnosisReport();
+  const backRoute = backToHistory ? '/history' : '/dashboard';
 
   const reportWidth = Math.min(width - 34, 720);
   const dateLabel = useMemo(() => (report ? formatDate(report.createdAt) : ''), [report]);
@@ -114,7 +119,7 @@ export function DiagnosisReportScreen() {
       <SafeAreaView style={styles.screen} edges={['top', 'left', 'right', 'bottom']}>
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>Report tidak tersedia</Text>
-          <AppButton title="Kembali ke Dashboard" onPress={() => router.replace('/dashboard')} />
+          <AppButton title={backToHistory ? 'Kembali ke Riwayat' : 'Kembali ke Dashboard'} onPress={() => router.replace(backRoute)} />
         </View>
       </SafeAreaView>
     );
@@ -161,7 +166,7 @@ export function DiagnosisReportScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Kembali ke dashboard"
-            onPress={() => router.replace('/dashboard')}
+            onPress={() => router.replace(backRoute)}
             style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
             <View style={styles.backChevron} />
           </Pressable>
@@ -241,6 +246,14 @@ function SegmentedXrayImage({
   const displayHeight = 150;
   const sourceWidth = imageWidth || 640;
   const sourceHeight = imageHeight || 640;
+
+  if (!imageUri) {
+    return (
+      <View style={[styles.segmentedImageWrap, styles.missingImageWrap]}>
+        <Text style={styles.missingImageText}>Foto rontgen tidak tersedia</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.segmentedImageWrap}>
@@ -419,6 +432,16 @@ const styles = StyleSheet.create({
   width: '100%',
   height: '100%',
   },
+  missingImageWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  missingImageText: {
+    color: '#5D7E86',
+    fontSize: 12,
+    fontFamily: 'serif',
+    fontWeight: '700',
+  },
   imageNumber: {
     marginTop: 8,
     textAlign: 'center',
@@ -537,6 +560,8 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
 });
+
+
 
 
 

@@ -63,6 +63,10 @@ export function HistoryScreen() {
     }
   }, []);
 
+  function handleOpenDetail(item: HistoryItem) {
+    router.push({ pathname: '/history/[id]', params: { id: item.id } });
+  }
+
   useFocusEffect(
     useCallback(() => {
       loadHistory();
@@ -107,7 +111,7 @@ export function HistoryScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
           {items.map((item) => (
-            <View key={item.id} style={styles.card}>
+            <Pressable key={item.id} accessibilityRole="button" onPress={() => handleOpenDetail(item)} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
               {item.imageUrl ? (
                 <Image source={{ uri: item.imageUrl }} resizeMode="cover" style={styles.thumbnail} />
               ) : (
@@ -127,7 +131,7 @@ export function HistoryScreen() {
                 <Text style={styles.meta}>Tanggal: {formatDate(item.processedAt || item.createdAt)}</Text>
                 {item.errorMessage ? <Text style={styles.errorSmall}>{item.errorMessage}</Text> : null}
               </View>
-            </View>
+            </Pressable>
           ))}
         </ScrollView>
       )}
@@ -305,3 +309,5 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
 });
+
+
