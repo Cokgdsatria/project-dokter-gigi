@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+﻿from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer 
 from jose import jwt, JWTError
 from app.core.config import settings
@@ -26,3 +26,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     if not user:
         raise credentials_exception
     return user
+
+def require_roles(*allowed_roles: str):
+    async def dependency(current_user=Depends(get_current_user)):
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Akses tidak diizinkan",
+            )
+        return current_user
+
+    return dependency

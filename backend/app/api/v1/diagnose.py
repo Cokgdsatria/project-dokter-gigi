@@ -1,4 +1,5 @@
-import hashlib
+﻿import hashlib
+import logging
 import json
 import uuid
 from datetime import datetime, timezone
@@ -15,6 +16,7 @@ from app.services.dental_service import process_inference, normalize_predictions
 from app.services.storage_service import upload_scan_image
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def normalize_diagnosis_awal(diagnosis_awal: List[str]) -> List[str]:
@@ -44,6 +46,13 @@ async def process_dental_diagnosis(
 ):
     trace_id = str(uuid.uuid4())
     try:
+        logger.info(
+            "diagnose.request_started trace_id=%s doctor_id=%s filename=%s content_type=%s",
+            trace_id,
+            current_user.id,
+            file.filename,
+            file.content_type,
+        )
         dbg_emit(
             hypothesis_id="D",
             location="diagnose.py",
@@ -113,9 +122,24 @@ async def process_dental_diagnosis(
             where={"id": saved_scan.id},
             data={"status": "PROCESSING"},
         )
+        logger.info(
+            "diagnose.image_uploaded trace_id=%s scan_id=%s bytes=%s image_url_present=%s",
+            trace_id,
+            saved_scan.id,
+            len(image_bytes),
+            bool(image_url),
+        )
 
         status, predictions_for_db, result_label, result_confidence, error_message = await process_inference(
             image_bytes, safe_filename, trace_id
+        )
+        logger.info(
+            "diagnose.inference_finished trace_id=%s scan_id=%s status=%s result_label=%s confidence=%s",
+            trace_id,
+            saved_scan.id,
+            status,
+            result_label,
+            result_confidence,
         )
 
         saved_scan = await db.scanhistory.update(
@@ -153,6 +177,7 @@ async def process_dental_diagnosis(
     except Exception as e:
         if isinstance(e, HTTPException):
             raise e
+        logger.exception("diagnose.unhandled_exception trace_id=%s", trace_id)
         dbg_emit(
             hypothesis_id="C",
             location="diagnose.py",
