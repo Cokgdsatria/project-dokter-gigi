@@ -58,15 +58,30 @@ function getImageMimeType(fileName: string, fallbackMimeType?: string) {
   return 'image/jpeg';
 }
 
-function getDiagnosisParameters(draft: DiagnosisDraft, fileName: string) {
-  return {
+function getDiagnosisParameters(draft: DiagnosisDraft, fileName: string): Record<string, string> {
+  const parameters: Record<string, string> = {
     homebaseType: draft.homebaseType,
     homebaseName: draft.homebaseName,
     homebaseAddress: draft.homebaseAddress,
     diagnosisAwal: JSON.stringify(draft.diagnoses),
-    ...(draft.doctorNote?.trim() ? { catatanDokter: draft.doctorNote.trim() } : {}),
+    patientMedicalId: draft.patientMedicalId,
+    patientName: draft.patientName,
     fileName,
   };
+
+  if (draft.patientAge !== undefined) {
+    parameters.patientAge = String(draft.patientAge);
+  }
+
+  if (draft.patientGender) {
+    parameters.patientGender = draft.patientGender;
+  }
+
+  if (draft.doctorNote?.trim()) {
+    parameters.catatanDokter = draft.doctorNote.trim();
+  }
+
+  return parameters;
 }
 
 function parseJsonBody(body: string | null) {
