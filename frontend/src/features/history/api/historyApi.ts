@@ -1,7 +1,15 @@
-﻿import { API_BASE_URL } from '../../../shared/api/client';
+import { API_BASE_URL } from '../../../shared/api/client';
 import { getAuthSession } from '../../auth/api/authSession';
 import type { AuthUser } from '../../auth/api/authApi';
 import type { DiagnosisPrediction } from '../../diagnosis/api/diagnosisApi';
+
+export type Patient = {
+  id: string;
+  medicalId: string;
+  name: string;
+  age?: number | null;
+  gender?: string | null;
+};
 
 export type HistoryItem = {
   id: string;
@@ -28,7 +36,7 @@ export type HistoryDetail = HistoryItem & {
   catatanDokter?: string | null;
   predictions?: DiagnosisPrediction[];
   doctor?: AuthUser | null;
-  patient?: unknown;
+  patient?: Patient | null;
 };
 
 type HistoryDetailResponse = {

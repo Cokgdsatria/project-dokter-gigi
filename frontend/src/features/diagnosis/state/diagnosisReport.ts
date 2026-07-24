@@ -1,10 +1,14 @@
-﻿import type { AuthUser } from '../../auth/api/authApi';
+import type { AuthUser } from '../../auth/api/authApi';
 import type { DiagnosisResponse } from '../api/diagnosisApi';
-import type { BackendHomebaseType, DiagnosisDraft } from './diagnosisDraft';
+import type { BackendHomebaseType, DiagnosisDraft, PatientGender } from './diagnosisDraft';
 import type { HistoryDetail } from '../../history/api/historyApi';
 
 function normalizeHomebaseType(value?: string | null): BackendHomebaseType {
   return value === 'KLINIK' || value === 'LAINNYA' || value === 'RUMAH_SAKIT' ? value : 'RUMAH_SAKIT';
+}
+
+function normalizePatientGender(value?: string | null): PatientGender | undefined {
+  return value === 'Laki-laki' || value === 'Perempuan' ? value : undefined;
 }
 
 export type DiagnosisReport = {
@@ -68,6 +72,10 @@ export function setDiagnosisReportFromHistory(item: HistoryDetail, fallbackDocto
       homebaseType: normalizeHomebaseType(item.homebaseType),
       homebaseName: item.homebaseName || '-',
       homebaseAddress: item.homebaseAddress || '-',
+      patientMedicalId: item.patient?.medicalId || '-',
+      patientName: item.patient?.name || '-',
+      patientAge: item.patient?.age ?? undefined,
+      patientGender: normalizePatientGender(item.patient?.gender),
       imageUri: item.imageUrl || '',
       imageName: item.filename || undefined,
       imageMimeType: item.mimeType || undefined,

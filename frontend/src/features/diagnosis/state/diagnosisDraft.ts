@@ -1,9 +1,17 @@
-﻿export type BackendHomebaseType = 'RUMAH_SAKIT' | 'KLINIK' | 'LAINNYA';
+export type BackendHomebaseType = 'RUMAH_SAKIT' | 'KLINIK' | 'LAINNYA';
+
+export type PatientGender = 'Laki-laki' | 'Perempuan';
 
 export type DiagnosisDraft = {
   homebaseType: BackendHomebaseType;
   homebaseName: string;
   homebaseAddress: string;
+
+  patientMedicalId: string;
+  patientName: string;
+  patientAge?: number;
+  patientGender?: PatientGender;
+
   imageUri: string;
   imageName?: string;
   imageMimeType?: string;
@@ -28,9 +36,17 @@ export function getDiagnosisDraft(): EditableDiagnosisDraft {
 }
 
 export function getCompleteDiagnosisDraft(): DiagnosisDraft | null {
-  const { homebaseType, homebaseName, homebaseAddress, imageUri, diagnoses } = diagnosisDraft;
+  const { 
+    homebaseType, 
+    homebaseName, 
+    homebaseAddress, 
+    imageUri, 
+    diagnoses,
+    patientMedicalId,
+    patientName,
+  } = diagnosisDraft;
 
-  if (!homebaseType || !homebaseName || !homebaseAddress || !imageUri || !diagnoses?.length) {
+  if (!homebaseType || !homebaseName || !homebaseAddress || !patientMedicalId || !patientName || !imageUri || !diagnoses?.length) {
     return null;
   }
 

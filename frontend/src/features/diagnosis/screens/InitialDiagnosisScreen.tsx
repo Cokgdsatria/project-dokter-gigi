@@ -1,4 +1,4 @@
-﻿import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   Alert,
@@ -16,12 +16,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DiagnosisSelectField } from '../components/DiagnosisSelectField';
 import { DiagnosisTextField } from '../components/DiagnosisTextField';
-import { updateDiagnosisDraft, type BackendHomebaseType } from '../state/diagnosisDraft';
+import { updateDiagnosisDraft, type BackendHomebaseType, type PatientGender } from '../state/diagnosisDraft';
 import { AppButton } from '../../../shared/components/AppButton';
 import { appColors } from '../../../shared/theme/colors';
 
 const logo = require('../../../../assets/logo/logo_CekGigi.png');
 const HOMEBASE_OPTIONS = ['Universitas', 'Rumah Sakit', 'Mandiri'];
+const GENDER_OPTIONS: PatientGender[] = ['Laki-laki', 'Perempuan'];
 
 function toBackendHomebaseType(homebase: string): BackendHomebaseType {
   if (homebase === 'Rumah Sakit') {
@@ -37,6 +38,11 @@ export function InitialDiagnosisScreen() {
   const [homebaseName, setHomebaseName] = useState('');
   const [homebaseAddress, setHomebaseAddress] = useState('');
   const [isHomebaseOpen, setIsHomebaseOpen] = useState(false);
+  const [patientMedicalId, setPatientMedicalId] = useState('');
+  const [patientName, setPatientName] = useState('');
+  const [patientAge, setPatientAge] = useState('');
+  const [patientGender, setPatientGender] = useState<PatientGender>('Laki-laki');
+  const [isGenderOpen, setIsGenderOpen] = useState(false);
 
   const horizontalPadding = Math.min(34, Math.max(24, width * 0.04));
 
@@ -44,15 +50,30 @@ export function InitialDiagnosisScreen() {
     useCallback(() => {
       setHomebaseName('');
       setHomebaseAddress('');
+      setPatientMedicalId('');
+      setPatientName('');
+      setPatientAge('');
+      setPatientGender('Laki-laki');
+      setIsHomebaseOpen(false);
+      setIsGenderOpen(false);
     }, [])
   );
 
   function handleContinue() {
     const nextHomebaseName = homebaseName.trim();
     const nextHomebaseAddress = homebaseAddress.trim();
+    const nextPatientMedicalId = patientMedicalId.trim();
+    const nextPatientName = patientName.trim();
+    const nextPatientAge = patientAge.trim();
 
-    if (!nextHomebaseName || !nextHomebaseAddress) {
-      Alert.alert('Data belum lengkap', 'Nama Homebase dan Alamat Homebase wajib diisi.');
+    if (!nextHomebaseName || !nextHomebaseAddress || !nextPatientMedicalId || !nextPatientName) {
+      Alert.alert('Data belum lengkap', 'Homebase, ID pasien, dan Nama pasien wajib diisi.');
+      return;
+    }
+
+    const parsedPatientAge = nextPatientAge ? Number(nextPatientAge) : undefined;
+    if (parsedPatientAge !== undefined && (!Number.isInteger(parsedPatientAge) || parsedPatientAge <= 0)) {
+      Alert.alert('Umur tidak valid', 'Umur pasien harus berupa angka lebih dari 0.');
       return;
     }
 
@@ -60,6 +81,10 @@ export function InitialDiagnosisScreen() {
       homebaseType: toBackendHomebaseType(homebase),
       homebaseName: nextHomebaseName,
       homebaseAddress: nextHomebaseAddress,
+      patientMedicalId: nextPatientMedicalId,
+      patientName: nextPatientName,
+      patientAge: parsedPatientAge,
+      patientGender,
     });
     router.push('/diagnosis-detail');
   }
@@ -129,6 +154,35 @@ export function InitialDiagnosisScreen() {
               placeholderTextColor="#bbbbbb"
               multiline
             />
+            <DiagnosisTextField
+              label="No. Rekam Medis / ID Pasien"
+              value={patientMedicalId}
+              onChangeText={setPatientMedicalId}
+              required
+            />
+            <DiagnosisTextField
+              label="Nama Pasien"
+              value={patientName}
+              onChangeText={setPatientName}
+              required
+            />
+            <DiagnosisTextField
+            label="Umur"
+            value={patientAge}
+            onChangeText={setPatientAge}
+            keyboardType="numeric"
+          />
+          <DiagnosisSelectField
+            label="Jenis Kelamin"
+            value={patientGender}
+            options={GENDER_OPTIONS}
+            isOpen={isGenderOpen}
+            onToggle={() => setIsGenderOpen((value) => !value)}
+            onSelect={(value) => {
+              setPatientGender(value as PatientGender);
+              setIsGenderOpen(false);
+            }}
+          />
           </View>
 
           <View style={styles.footer}>
