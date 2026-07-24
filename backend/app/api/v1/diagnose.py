@@ -1,4 +1,4 @@
-﻿import hashlib
+import hashlib
 import logging
 import json
 import uuid
@@ -41,8 +41,11 @@ async def process_dental_diagnosis(
     homebaseAddress: str = Form(...),
     diagnosisAwal: List[str] = Form(...),
     catatanDokter: Optional[str] = Form(None),
-    patientId: Optional[str] = Form(None),
     current_user=Depends(get_current_user),
+    patientMedicalId: str = Form(...),
+    patientName: str = Form(...),
+    patientAge: Optional[int] = Form(None),
+    patientGender: Optional[str] = Form(None),
 ):
     trace_id = str(uuid.uuid4())
     try:
@@ -82,16 +85,24 @@ async def process_dental_diagnosis(
         if len(image_bytes) > settings.MAX_UPLOAD_BYTES:
             raise HTTPException(status_code=413, detail="Ukuran file terlalu besar")
 
-        normalized_patient_id: Optional[str] = (patientId or "").strip() or None
-        if normalized_patient_id is not None and normalized_patient_id.lower() == "string":
-            normalized_patient_id = None
-        if normalized_patient_id is not None:
-            patient = await db.patient.find_unique(where={"id": normalized_patient_id})
-            if patient is None:
-                raise HTTPException(status_code=400, detail="patientId tidak ditemukan")
-
         safe_filename = file.filename or "upload.jpg"
         image_sha256 = hashlib.sha256(image_bytes).hexdigest()
+
+        patient = await get_or_create_patient(
+            doctor_id=current_user.id,
+            medical_id=patientMedicalId,
+            name=patientName,
+            age=patientAge,
+            gender=patientGender,
+        )
+
+        homebase = await get_or_create_homebase(
+            doctor_id=current_user.id,
+            homebase_type=normalized_homebase_type,
+            name=homebaseName,
+            address=homebaseAddress,
+        )
+
         image_url = await upload_scan_image(
             image_bytes=image_bytes,
             filename=safe_filename,
@@ -101,8 +112,11 @@ async def process_dental_diagnosis(
 
         create_data: Dict[str, Any] = {
             "homebaseType": normalized_homebase_type,
-            "homebaseName": homebaseName,
-            "homebaseAddress": homebaseAddress,
+            "homebaseName": homebase.name,
+            "homebaseAddress": homebase.address,
+            "homebaseId": homebase.id,
+            "patientId": patient.id,
+            "doctorId": current_user.id,
             "diagnosisAwal": normalized_diagnosis,
             "catatanDokter": catatanDokter,
             "filename": safe_filename,
@@ -112,10 +126,7 @@ async def process_dental_diagnosis(
             "imageUrl": image_url,
             "status": "UPLOADED",
             "predictions": Json({"predictions": []}),
-            "doctorId": current_user.id,
         }
-        if normalized_patient_id is not None:
-            create_data["patientId"] = normalized_patient_id
 
         saved_scan = await db.scanhistory.create(data=create_data)
         saved_scan = await db.scanhistory.update(
@@ -186,3 +197,76 @@ async def process_dental_diagnosis(
             trace_id=trace_id,
         )
         raise HTTPException(status_code=500, detail=str(e) if settings.DEBUG else "Internal server error")
+
+
+async def get_or_create_patient(
+    doctor_id: str,
+    medical_id: str,
+    name: str,
+    age: Optional[int],
+    gender: Optional[str],
+):
+    normalized_medical_id = medical_id.strip()
+    normalized_name = name.strip()
+    normalized_gender = (gender or "").strip() or None
+
+    if not normalized_medical_id or not normalized_name:
+        raise HTTPException(status_code=400, detail="Data pasien wajib diisi")
+
+    patient = await db.patient.find_first(
+        where={"doctorId": doctor_id, "medicalId": normalized_medical_id}
+    )
+
+    if patient:
+        return await db.patient.update(
+            where={"id": patient.id},
+            data={
+                "name": normalized_name,
+                "age": age,
+                "gender": normalized_gender,
+            },
+        )
+
+    return await db.patient.create(
+        data={
+            "doctorId": doctor_id,
+            "medicalId": normalized_medical_id,
+            "name": normalized_name,
+            "age": age,
+            "gender": normalized_gender,
+        }
+    )
+
+async def get_or_create_homebase(
+    doctor_id: str,
+    homebase_type: str,
+    name: str, 
+    address: str,
+):
+    
+    normalized_name = name.strip()
+    normalized_address = address.strip()
+
+    if not normalized_name or not normalized_address:
+        raise HTTPException(status_code=400, detail="Data homebase wajib diisi")
+    
+    homebase = await db.homebase.find_first(
+        where={
+            "doctorId": doctor_id,
+            "type": homebase_type,
+            "name": normalized_name,
+            "address": normalized_address,
+        }
+    )
+
+    if homebase:
+        return homebase
+
+    return await db.homebase.create(
+        data={
+            "doctorId": doctor_id,
+            "type": homebase_type,
+            "name": normalized_name,
+            "address": normalized_address,
+        }
+    )

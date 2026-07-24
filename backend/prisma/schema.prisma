@@ -10,8 +10,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum ScanStatus {
@@ -43,12 +44,13 @@ model User {
   //Relasi: Satu dokter bisa menangani banyak pasien dan melakukan banyak scan
   patients Patient[]
   scans ScanHistory[]
+  homebases Homebase[]
 }
 
 // 2. Model untuk Data Pasien
 model Patient {
   id String @id @default(cuid())
-  medicalId String @unique
+  medicalId String
   name String
   age Int?
   gender String?
@@ -61,6 +63,8 @@ model Patient {
 
   // Relasi: Satu pasien bisa memiliki banyak riwayat scan
   scans ScanHistory[]
+
+  @@unique([doctorId, medicalId])
 }
 
 // 3. Model untuk Riwayat Deteksi AI (Diperbarui)
@@ -115,6 +119,12 @@ model Homebase {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  doctorId String
+  doctor User @relation(fields: [doctorId], references: [id])
+
   //Relasi: Satu Homebase bisa memiliki banyak riwayat scan
   scans ScanHistory[]
+
+  @@unique([doctorId, type, name, address])
+
 }
