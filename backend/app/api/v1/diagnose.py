@@ -33,6 +33,12 @@ def normalize_diagnosis_awal(diagnosis_awal: List[str]) -> List[str]:
     return [diagnosis.strip() for diagnosis in diagnosis_awal if diagnosis and diagnosis.strip()]
 
 
+def create_result_number(scan_id: str, created_at: datetime) -> str:
+    date_part = created_at.strftime("%Y%m%d")
+    suffix = "".join(char for char in scan_id if char.isalnum())[-6:].upper() or "000000"
+    return f"CG-{date_part}-{suffix}"
+
+
 @router.post("/diagnose")
 async def process_dental_diagnosis(
     file: UploadFile = File(...),
@@ -129,9 +135,10 @@ async def process_dental_diagnosis(
         }
 
         saved_scan = await db.scanhistory.create(data=create_data)
+        result_number = create_result_number(saved_scan.id, saved_scan.createdAt)
         saved_scan = await db.scanhistory.update(
             where={"id": saved_scan.id},
-            data={"status": "PROCESSING"},
+            data={"status": "PROCESSING", "resultNumber": result_number},
         )
         logger.info(
             "diagnose.image_uploaded trace_id=%s scan_id=%s bytes=%s image_url_present=%s",
@@ -169,6 +176,7 @@ async def process_dental_diagnosis(
 
         response_data: Dict[str, Any] = {
             "id": saved_scan.id,
+            "resultNumber": saved_scan.resultNumber,
             "status": saved_scan.status,
             "resultLabel": saved_scan.resultLabel,
             "resultConfidence": saved_scan.resultConfidence,
