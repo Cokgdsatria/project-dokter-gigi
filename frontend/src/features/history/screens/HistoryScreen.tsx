@@ -1,4 +1,4 @@
-﻿import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,6 +36,16 @@ function formatConfidence(value?: number | null) {
   return `${Math.round(value * 100)}%`;
 }
 
+
+function formatPatient(item: HistoryItem) {
+  const patient = item.patient;
+  if (!patient) {
+    return 'Pasien: -';
+  }
+
+  const medicalId = patient.medicalId ? ` / ${patient.medicalId}` : '';
+  return `Pasien: ${patient.name}${medicalId}`;
+}
 function getStatusColor(status: string) {
   if (status === 'DONE') {
     return '#198754';
@@ -126,6 +136,7 @@ export function HistoryScreen() {
                   <Text style={[styles.status, { color: getStatusColor(item.status) }]}>{item.status}</Text>
                 </View>
                 <Text style={styles.resultLabel}>{item.resultLabel || 'Belum ada hasil'}</Text>
+                <Text style={styles.meta}>{formatPatient(item)}</Text>
                 <Text style={styles.meta}>Confidence: {formatConfidence(item.resultConfidence)}</Text>
                 <Text style={styles.meta}>Homebase: {item.homebaseName || '-'}</Text>
                 <Text style={styles.meta}>Tanggal: {formatDate(item.processedAt || item.createdAt)}</Text>

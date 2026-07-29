@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Image,
@@ -19,14 +19,19 @@ import { DiagnosisTextField } from '../components/DiagnosisTextField';
 import { updateDiagnosisDraft, type BackendHomebaseType, type PatientGender } from '../state/diagnosisDraft';
 import { AppButton } from '../../../shared/components/AppButton';
 import { appColors } from '../../../shared/theme/colors';
+import { searchPatients, type PatientOption } from '../api/patientApi';
 
 const logo = require('../../../../assets/logo/logo_CekGigi.png');
-const HOMEBASE_OPTIONS = ['Universitas', 'Rumah Sakit', 'Mandiri'];
+const HOMEBASE_OPTIONS = ['Rumah Sakit', 'Klinik', 'Lainnya'];
 const GENDER_OPTIONS: PatientGender[] = ['Laki-laki', 'Perempuan'];
 
 function toBackendHomebaseType(homebase: string): BackendHomebaseType {
   if (homebase === 'Rumah Sakit') {
     return 'RUMAH_SAKIT';
+  }
+
+  if (homebase === 'Klinik') {
+    return 'KLINIK';
   }
 
   return 'LAINNYA';
@@ -43,6 +48,8 @@ export function InitialDiagnosisScreen() {
   const [patientAge, setPatientAge] = useState('');
   const [patientGender, setPatientGender] = useState<PatientGender>('Laki-laki');
   const [isGenderOpen, setIsGenderOpen] = useState(false);
+  const [patientSuggestions, setPatientSuggestions] = useState<PatientOption[]>([]);
+  const [isSearchingPatient, setIsSearchingPatient] = useState(false);
 
   const horizontalPadding = Math.min(34, Math.max(24, width * 0.04));
 
@@ -58,6 +65,43 @@ export function InitialDiagnosisScreen() {
       setIsGenderOpen(false);
     }, [])
   );
+
+  useEffect(() => {
+    const query = patientMedicalId.trim();
+
+    if (query.length < 2) {
+      setPatientSuggestions([]);
+      setIsSearchingPatient(false);
+      return;
+    }
+
+    let isCancelled = false;
+
+    async function loadPatients() {
+      try {
+        setIsSearchingPatient(true);
+        const result = await searchPatients(query);
+        if (!isCancelled) {
+          setPatientSuggestions(result);
+        }
+      } catch {
+        if (!isCancelled) {
+          setPatientSuggestions([]);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsSearchingPatient(false);
+        }
+      }
+    }
+
+    const timeout = setTimeout(loadPatients, 350);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [patientMedicalId]);
 
   function handleContinue() {
     const nextHomebaseName = homebaseName.trim();
@@ -87,6 +131,14 @@ export function InitialDiagnosisScreen() {
       patientGender,
     });
     router.push('/diagnosis-detail');
+  }
+
+  function handleSelectPatient(patient: PatientOption) {
+    setPatientMedicalId(patient.medicalId);
+    setPatientName(patient.name);
+    setPatientAge(patient.age ? String(patient.age) : '');
+    setPatientGender(patient.gender === 'Perempuan' ? 'Perempuan' : 'Laki-laki');
+    setPatientSuggestions([]);
   }
 
   return (
@@ -160,6 +212,28 @@ export function InitialDiagnosisScreen() {
               onChangeText={setPatientMedicalId}
               required
             />
+
+            {isSearchingPatient ? (
+              <Text style={styles.suggestionText}>Mencari Pasien...</Text>
+            ) : null}
+
+            {patientSuggestions.length > 0 ? (
+              <View style={styles.suggestionList}>
+                {patientSuggestions.map((patient) => (
+                  <Pressable
+                    key={patient.id}
+                    onPress={() => handleSelectPatient(patient)}
+                    style={({ pressed }) => [
+                      styles.suggestionItem,
+                      pressed && styles.pressed,
+                    ]}>
+                      <Text style={styles.suggestionName}>{patient.name}</Text>
+                      <Text style={styles.suggestionMeta}>RM: {patient.medicalId}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+
             <DiagnosisTextField
               label="Nama Pasien"
               value={patientName}
@@ -263,6 +337,34 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 'auto',
     paddingTop: 80,
+  },
+  suggestionText: {
+  color: '#8A8A8A',
+  fontSize: 13,
+  fontWeight: '600',
+  },
+  suggestionList: {
+    gap: 8,
+    marginTop: -12,
+  },
+  suggestionItem: {
+    borderWidth: 1,
+    borderColor: '#D9F2F5',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  suggestionName: {
+    color: '#0A0A0A',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  suggestionMeta: {
+    marginTop: 2,
+    color: '#6F6F6F',
+    fontSize: 13,
+    fontWeight: '600',
   },
   pressed: {
     opacity: 0.72,

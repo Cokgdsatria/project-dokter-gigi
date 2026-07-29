@@ -27,6 +27,7 @@ export type DiagnosisResponse = {
   message: string;
   data: {
     id: string;
+    resultNumber?: string | null;
     status: 'DONE' | 'FAILED' | string;
     resultLabel?: string | null;
     resultConfidence?: number | null;
