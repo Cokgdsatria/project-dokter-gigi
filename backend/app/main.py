@@ -5,12 +5,14 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.v1 import diagnose, auth, history, patients
+from app.api.v1 import diagnose, auth, history, patients, homebases
 from app.core.config import settings
 from app.core.telemetry import dbg_emit
 from app.database.db import connect_db, disconnect_db
 
 app = FastAPI(title=settings.PROJECT_TITLE)
+
+app.include_router(homebases.router, prefix="/api/v1", tags=["Homebases"])
 
 app.add_middleware(
     CORSMiddleware, 

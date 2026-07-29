@@ -1,4 +1,4 @@
-﻿from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -7,6 +7,20 @@ from app.database.db import db
 from app.services.dental_service import get_prediction_image_size, normalize_predictions
 
 router = APIRouter()
+
+
+def serialize_doctor(user):
+    if user is None:
+        return None
+
+    return {
+        "id": user.id,
+        "email": user.email,
+        "fullname": user.fullname,
+        "phone": user.phone,
+        "position": user.position,
+        "role": user.role,
+    }
 
 
 @router.get("/history")
@@ -86,7 +100,7 @@ async def get_history_detail(
                 "createdAt": item.createdAt,
                 "processedAt": item.processedAt,
                 "predictions": normalize_predictions(predictions_for_db),
-                "doctor": item.doctor,
+                "doctor": serialize_doctor(item.doctor),
                 "patient": item.patient,
             },
         }

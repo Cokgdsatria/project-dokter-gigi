@@ -98,12 +98,12 @@ model ScanHistory {
   processedAt DateTime?
 
   // Relasi ke Homebase
-  homebaseId String?
-  homebase Homebase? @relation(fields: [homebaseId], references: [id])
+  homebaseId String
+  homebase Homebase @relation(fields: [homebaseId], references: [id])
 
   // Relasi ke Pasien yang difoto giginya
-  patientId String?
-  patient Patient? @relation(fields: [patientId], references: [id])
+  patientId String
+  patient Patient @relation(fields: [patientId], references: [id])
 
   // Relasi ke Dokter yang melakukan scan
   doctorId String
