@@ -45,7 +45,7 @@ function createResultNumber(response: DiagnosisResponse) {
 
 export function setDiagnosisReport(draft: DiagnosisDraft, response: DiagnosisResponse, doctor: AuthUser | null) {
   diagnosisReport = {
-    resultNumber: createResultNumber(response),
+    resultNumber: response.data.resultNumber || createResultNumber(response),
     createdAt: new Date().toISOString(),
     doctor,
     draft: {

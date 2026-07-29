@@ -23,6 +23,7 @@ export type HistoryItem = {
   fileSize?: number | null;
   homebaseType?: string | null;
   homebaseName?: string | null;
+  patient?: Patient | null;
   createdAt: string;
   processedAt?: string | null;
   errorMessage?: string | null;
@@ -36,7 +37,6 @@ export type HistoryDetail = HistoryItem & {
   catatanDokter?: string | null;
   predictions?: DiagnosisPrediction[];
   doctor?: AuthUser | null;
-  patient?: Patient | null;
 };
 
 type HistoryDetailResponse = {
