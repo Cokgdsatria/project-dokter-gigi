@@ -49,7 +49,11 @@ export function DashboardScreen() {
         <Pressable style={({ pressed }) => [styles.navButton, pressed && styles.navPressed]}>
           <HomeNavIcon active />
         </Pressable>
-        <Pressable style={({ pressed }) => [styles.navButton, pressed && styles.navPressed]}>
+        <Pressable 
+          accessibilityRole="button"
+          accessibilityLabel="Buka profile dokter"
+          onPress={() => router.push('/profile')}
+          style={({ pressed }) => [styles.navButton, pressed && styles.navPressed]}>
           <UserNavIcon />
         </Pressable>
       </View>
