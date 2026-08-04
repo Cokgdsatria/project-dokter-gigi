@@ -27,6 +27,9 @@ class Settings:
     SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
     SUPABASE_SERVICE_ROLE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     SUPABASE_BUCKET: str = os.getenv("SUPABASE_BUCKET", "dental-images")
+    SIGNED_URL_EXPIRE_SECONDS: int = int(
+        os.getenv("SIGNED_URL_EXPIRE_SECONDS", "900")
+    )
 
     MAX_UPLOAD_BYTES: int = int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))
     DEBUG: bool = env_bool("DEBUG")

@@ -81,7 +81,8 @@ model ScanHistory {
   filename String
   mimeType String?
   fileSize Int?
-  imageUrl String? // Jaga-jaga nanti gambar disimpan di Cloud Storage
+  imageUrl String?
+  imageObjectPath String? // Path private di Supabase Storage
   imageSha256 String?
 
   status ScanStatus @default(DRAFT)
