@@ -45,6 +45,7 @@ model User {
   patients Patient[]
   scans ScanHistory[]
   homebases Homebase[]
+  refreshTokens RefreshToken[]
 }
 
 // 2. Model untuk Data Pasien
@@ -82,8 +83,9 @@ model ScanHistory {
   mimeType String?
   fileSize Int?
   imageUrl String?
-  imageObjectPath String? // Path private di Supabase Storage
+  imageObjectPath String // Path private di Supabase Storage
   imageSha256 String?
+  idempotencyKey String?
 
   status ScanStatus @default(DRAFT)
   resultLabel String?
@@ -109,6 +111,12 @@ model ScanHistory {
   // Relasi ke Dokter yang melakukan scan
   doctorId String
   doctor User @relation(fields: [doctorId], references: [id])
+
+  @@unique([doctorId, idempotencyKey])
+  @@index([doctorId, createdAt])
+  @@index([patientId, createdAt])
+  @@index([homebaseId, createdAt])
+  @@index([status, updatedAt])
 }
 
 // 4. Model Homebase Data RS
@@ -128,4 +136,21 @@ model Homebase {
 
   @@unique([doctorId, type, name, address])
 
+}
+
+model RefreshToken {
+  id String @id @default(cuid())
+  tokenHash String @unique
+  familyId String
+  expiresAt DateTime
+  revokedAt DateTime?
+  replacedByTokenHash String?
+  createdAt DateTime @default(now())
+
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
 }

@@ -147,6 +147,24 @@ async def create_signed_image_urls(object_paths: List[str]) -> Dict[str, str]:
     )
 
 
+def _download_scan_image_sync(object_path: str) -> bytes:
+    client = _get_storage_client()
+    content = client.storage.from_(settings.SUPABASE_BUCKET).download(object_path)
+    if not isinstance(content, bytes) or not content:
+        raise RuntimeError("Object gambar tidak dapat diunduh")
+    return content
+
+
+async def download_scan_image(object_path: str) -> bytes:
+    if not object_path:
+        raise ValueError("Object path gambar kosong")
+
+    return await anyio.to_thread.run_sync(
+        _download_scan_image_sync,
+        object_path,
+    )
+
+
 def _delete_scan_image_sync(object_path: str) -> None:
     client = _get_storage_client()
     client.storage.from_(settings.SUPABASE_BUCKET).remove([object_path])

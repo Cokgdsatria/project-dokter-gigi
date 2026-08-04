@@ -1,63 +1,84 @@
 # Backend Deploy ke Railway
 
-Folder ini disiapkan untuk deploy backend FastAPI ke Railway memakai Nixpacks.
+Backend FastAPI dibangun dari Dockerfile. Railway menjalankan sinkronisasi Prisma
+sebagai pre-deploy command, lalu menjalankan python app/start.py.
 
-## File deploy
+## Environment production wajib
 
-- `Procfile`: start command production untuk FastAPI.
-- `nixpacks.toml`: setup Python + Node, install dependency, dan menjalankan `prisma generate`.
-- `.env.example`: template environment variables untuk Railway.
+- ENVIRONMENT=production
+- DATABASE_URL
+- DIRECT_URL
+- SECRET_KEY acak, minimal 32 karakter
+- CORS_ORIGINS berisi origin web yang diizinkan, bukan wildcard
+- ALLOWED_HOSTS berisi hostname Railway/custom domain, bukan wildcard
+- ROBOFLOW_API_KEY
+- ROBOFLOW_API_URL
+- ROBOFLOW_MODEL_ID
+- SUPABASE_URL
+- SUPABASE_SERVICE_ROLE_KEY
+- SUPABASE_BUCKET=dental-images
 
-## Environment variables wajib di Railway
+Gunakan nilai berikut agar deployment gagal bila database tidak tersedia:
 
-- `DATABASE_URL`
-- `SECRET_KEY`
-- `ROBOFLOW_API_KEY`
-- `ROBOFLOW_API_URL`
-- `ROBOFLOW_MODEL_ID`
-- `CORS_ORIGINS`
+~~~text
+CONNECT_DB_ON_STARTUP=true
+REQUIRE_DB_ON_STARTUP=true
+~~~
 
-## Environment variables opsional
+Jangan memasukkan service-role key ke variable Expo. Key tersebut hanya boleh
+berada di backend.
 
-- `MAX_UPLOAD_BYTES`
-- `ALLOWED_IMAGE_MIME`
-- `DEBUG`
-- `DEBUG_RUN_ID`
-- `DEBUG_SERVER_URL`
-- `DEBUG_SESSION_ID`
+## HTTPS frontend
 
-## Start command
+Build preview/production Expo harus menggunakan backend HTTPS:
 
-Railway bisa memakai `Procfile` atau `nixpacks.toml` yang sudah ada. Command production:
+~~~text
+EXPO_PUBLIC_API_BASE_URL=https://<domain-backend>
+~~~
 
-```bash
-prisma generate && uvicorn app.main:app --host 0.0.0.0 --port 8080
-```
+src/shared/api/config.ts akan menghentikan build production yang tidak memiliki
+URL API atau masih memakai HTTP.
 
-## Prisma
+## Prisma dan startup
 
-Project ini memakai `prisma-client-py`, jadi build perlu menjalankan:
+Urutannya:
 
-```bash
-prisma generate
-```
+1. Docker build menginstal dependency dan menjalankan prisma generate.
+2. Railway menjalankan python -m prisma db push --skip-generate.
+3. Jika pre-deploy berhasil, Railway menjalankan python app/start.py.
+4. Deployment dianggap siap setelah /ready dapat terhubung ke database.
 
-Sesudah `DATABASE_URL` diarahkan ke Postgres Railway, sinkronkan schema database dengan salah satu command berikut dari environment yang sesuai:
+Untuk jangka panjang, pindahkan perubahan schema ke migration versioned dan ganti
+pre-deploy command menjadi python -m prisma migrate deploy.
 
-```bash
-prisma db push
-```
+## Pemeriksaan setelah deploy
 
-Atau, kalau nanti migrasi resmi sudah dipakai:
+~~~text
+GET https://<domain-backend>/health
+GET https://<domain-backend>/ready
+~~~
 
-```bash
-prisma migrate deploy
-```
+/docs sengaja dinonaktifkan saat ENVIRONMENT=production.
 
-## Health check
+## Worker diagnosis async
 
-Endpoint health check tersedia di:
+Untuk beban production, buat service Railway kedua dari folder backend yang sama:
 
-```text
-/health
-```
+~~~text
+python -m app.worker
+~~~
+
+Set DIAGNOSIS_ASYNC_ENABLED=true pada service API setelah worker aktif. API akan
+menyimpan job sebagai UPLOADED dan segera merespons; worker mengklaim job secara
+atomik dan frontend melakukan polling melalui endpoint history. Beberapa instance
+worker dapat dijalankan untuk menambah kapasitas.
+
+Jangan mengaktifkan mode async sebelum service worker berjalan. Development lokal
+tetap menggunakan DIAGNOSIS_ASYNC_ENABLED=false dan tidak memerlukan worker.
+
+## Rate limiting
+
+Backend memiliki limiter per proses untuk endpoint auth dan diagnosis. Atur
+AUTH_RATE_LIMIT_PER_MINUTE dan DIAGNOSIS_RATE_LIMIT_PER_MINUTE sesuai kebutuhan.
+Untuk beberapa instance API, aktifkan rate limiting Cloudflare/API gateway karena
+limiter lokal tidak berbagi counter antar-instance.

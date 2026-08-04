@@ -73,23 +73,18 @@ async def serialize_history_items(items):
     return [
         serialize_history_item(
             item,
-            signed_urls.get(item.imageObjectPath)
-            if item.imageObjectPath
-            else item.imageUrl,
+            signed_urls.get(item.imageObjectPath),
         )
         for item in items
     ]
 
 
 async def resolve_history_image_url(item) -> Optional[str]:
-    if item.imageObjectPath:
-        try:
-            return await create_signed_image_url(item.imageObjectPath)
-        except Exception:
-            logger.exception("history.signed_url_failed scan_id=%s", item.id)
-            return None
-
-    return item.imageUrl
+    try:
+        return await create_signed_image_url(item.imageObjectPath)
+    except Exception:
+        logger.exception("history.signed_url_failed scan_id=%s", item.id)
+        return None
 
 
 @router.get("/history")

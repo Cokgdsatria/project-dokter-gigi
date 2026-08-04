@@ -5,6 +5,11 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "python app/start.py"
+    "preDeployCommand": "python -m prisma db push --skip-generate",
+    "startCommand": "python app/start.py",
+    "healthcheckPath": "/ready",
+    "healthcheckTimeout": 100,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
   }
 }

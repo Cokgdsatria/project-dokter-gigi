@@ -1,3 +1,4 @@
+import logging
 import os
 import tempfile
 from pathlib import Path
@@ -9,6 +10,8 @@ from inference_sdk import InferenceHTTPClient
 
 from app.core.config import settings
 from app.core.telemetry import dbg_emit
+
+logger = logging.getLogger(__name__)
 
 ROBOFLOW_CLIENT = InferenceHTTPClient(
     api_url=settings.ROBOFLOW_API_URL,
@@ -167,7 +170,37 @@ async def process_inference(
             trace_id=trace_id,
         )
 
-        result = await anyio.to_thread.run_sync(_infer_sync, image_bytes, filename)
+        result = None
+        last_error: Optional[Exception] = None
+        inference_succeeded = False
+        for attempt in range(1, settings.ROBOFLOW_RETRY_ATTEMPTS + 1):
+            try:
+                with anyio.fail_after(settings.ROBOFLOW_TIMEOUT_SECONDS):
+                    result = await anyio.to_thread.run_sync(
+                        _infer_sync,
+                        image_bytes,
+                        filename,
+                        abandon_on_cancel=True,
+                    )
+                inference_succeeded = True
+                break
+            except Exception as exc:
+                last_error = exc
+                logger.warning(
+                    "roboflow.infer_attempt_failed trace_id=%s attempt=%s/%s error_type=%s",
+                    trace_id,
+                    attempt,
+                    settings.ROBOFLOW_RETRY_ATTEMPTS,
+                    type(exc).__name__,
+                )
+                if attempt < settings.ROBOFLOW_RETRY_ATTEMPTS:
+                    await anyio.sleep(
+                        settings.ROBOFLOW_RETRY_BACKOFF_SECONDS * (2 ** (attempt - 1))
+                    )
+
+        if not inference_succeeded:
+            raise last_error or RuntimeError("Roboflow inference gagal")
+
         predictions = result if isinstance(result, dict) else {"result": result}
         if isinstance(predictions, dict):
             predictions_for_db = predictions
@@ -197,12 +230,12 @@ async def process_inference(
 
         return "DONE", predictions_for_db, result_label, result_confidence, None
     except Exception as e:
-        error_message = str(e)
+        error_message = "Layanan AI tidak dapat memproses gambar. Silakan coba lagi."
         dbg_emit(
             hypothesis_id="E",
             location="dental_service.py",
             msg="roboflow.infer.failed",
-            data={"error": error_message, "type": type(e).__name__},
+            data={"error": str(e), "type": type(e).__name__},
             trace_id=trace_id,
         )
         return "FAILED", predictions_for_db, result_label, result_confidence, error_message
