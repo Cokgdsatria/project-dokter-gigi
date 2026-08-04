@@ -4,10 +4,14 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getProfile, updateProfile } from '../api/profileApi';
-import { getAuthSession, setAuthSession } from '../../auth/api/authSession';
 import { AuthTextField } from '../../../shared/components/AuthTextField';
 import { AppButton } from '../../../shared/components/AppButton';
 import { AuthSelectField } from '@/shared/components/AuthSelectField';
+import {
+    clearAuthSession,
+    getAuthSession,
+    setAuthSession,
+} from '../../auth/api/authSession';
 
 const POSITIONS = ['Dokter Gigi', 'Dokter Spesialis', 'Medical Student'];
 
@@ -33,7 +37,7 @@ export function ProfileScreen() {
     }, []);
 
     async function handleSave() {
-        if (!fullname || !phone) {
+        if (!fullname.trim()) {
             Alert.alert('Data belum lengkap', 'Nama dokter wajib diisi.');
             return;
         }
@@ -47,13 +51,22 @@ export function ProfileScreen() {
              });
 
              const session = getAuthSession();
-             setAuthSession(session.accessToken!, session.tokenType ?? 'bearer', user);
+             await setAuthSession(
+                session.accessToken!, 
+                session.tokenType ?? 'bearer', 
+                user,
+            );
              Alert.alert('Berhasil', 'Profile berhasil diperbarui.');
         } catch (error) {
             Alert.alert('Gagal', error instanceof Error ? error.message : 'Gagal memperbarui profil');
         } finally {
             setIsSaving(false);
         }
+    }
+
+    async function handleLogout() {
+        await clearAuthSession();
+        router.replace('/login');
     }
 
     return (
@@ -92,6 +105,13 @@ export function ProfileScreen() {
                             title={isSaving ? 'Menyimpan..' : 'Simpan perubahan'}
                             disabled={isSaving}
                             onPress={handleSave}
+                        />
+
+                        <AppButton 
+                            title="Logout"
+                            variant="secondary"
+                            disabled={isSaving}
+                            onPress={handleLogout}
                         />
                     </View>
                 )}
