@@ -1,5 +1,4 @@
-import { API_BASE_URL } from '../../../shared/api/client';
-import { getAuthSession } from '../../auth/api/authSession';
+import { apiRequest } from '../../../shared/api/client';
 
 export type PatientOption = {
     id: string;
@@ -19,27 +18,16 @@ type PatientsResponse = {
 };
 
 export async function searchPatients(query: string): Promise<PatientOption[]> {
-    const session = getAuthSession();
-    if (!session.accessToken) {
-        throw new Error('Sesi login tidak ditemukan. Silakan login Ulang');
-    }
-
     const params = new URLSearchParams({
         q: query,
         take: '5',
     });
 
-    const response = await fetch(`${API_BASE_URL}/api/v1/patients?${params.toString()}`, {
-        headers: {
-            Authorization: `Bearer ${session.accessToken}`,
-        },
-    });
-
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-        throw new Error(data?.detail || data?.message || 'Gagal mencari pasien');
-    }
-
-    return (data as PatientsResponse).data.items;
+    const response = await apiRequest<PatientsResponse>(
+      `/api/v1/patients?${params.toString()}`,
+      {
+        authenticated: true,
+      },
+    );
+    return response.data.items;
 }

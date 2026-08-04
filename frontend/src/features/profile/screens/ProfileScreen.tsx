@@ -8,8 +8,8 @@ import { AuthTextField } from '../../../shared/components/AuthTextField';
 import { AppButton } from '../../../shared/components/AppButton';
 import { AuthSelectField } from '@/shared/components/AuthSelectField';
 import {
-    clearAuthSession,
     getAuthSession,
+    logoutAuthSession,
     setAuthSession,
 } from '../../auth/api/authSession';
 
@@ -51,11 +51,12 @@ export function ProfileScreen() {
              });
 
              const session = getAuthSession();
-             await setAuthSession(
-                session.accessToken!, 
-                session.tokenType ?? 'bearer', 
+             await setAuthSession({
+                accessToken: session.accessToken!,
+                refreshToken: session.refreshToken!,
+                tokenType: session.tokenType ?? 'bearer',
                 user,
-            );
+            });
              Alert.alert('Berhasil', 'Profile berhasil diperbarui.');
         } catch (error) {
             Alert.alert('Gagal', error instanceof Error ? error.message : 'Gagal memperbarui profil');
@@ -65,7 +66,7 @@ export function ProfileScreen() {
     }
 
     async function handleLogout() {
-        await clearAuthSession();
+        await logoutAuthSession();
         router.replace('/login');
     }
 
@@ -73,7 +74,7 @@ export function ProfileScreen() {
         <SafeAreaView style={styles.screen}>
             <ScrollView contentContainerStyle={styles.content}>
                 <Pressable onPress={() => router.back()}>
-                    <Text style={styles.back}>‹ Kembali</Text>
+                    <Text style={styles.back}>&lt; Kembali</Text>
                 </Pressable>
 
                 <Text style={styles.title}>Profile Dokter</Text>
