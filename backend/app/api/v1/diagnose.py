@@ -1,11 +1,13 @@
 import hashlib
-import logging
 import json
+import logging
 import uuid
 from datetime import datetime, timezone
+from io import BytesIO
 from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Depends
+from PIL import Image, UnidentifiedImageError
 from prisma import Json
 
 from app.api.deps import get_current_user
@@ -13,10 +15,19 @@ from app.core.config import settings
 from app.core.telemetry import dbg_emit
 from app.database.db import db
 from app.services.dental_service import process_inference, normalize_predictions, get_prediction_image_size
-from app.services.storage_service import upload_scan_image
+from app.services.storage_service import (
+    create_signed_image_url,
+    delete_scan_image,
+    upload_scan_image,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+IMAGE_FORMAT_MIME = {
+    "JPEG": "image/jpeg",
+    "PNG": "image/png",
+}
 
 
 def normalize_diagnosis_awal(diagnosis_awal: List[str]) -> List[str]:
@@ -39,6 +50,23 @@ def create_result_number(scan_id: str, created_at: datetime) -> str:
     return f"CG-{date_part}-{suffix}"
 
 
+def validate_image_content(image_bytes: bytes, declared_content_type: str) -> str:
+    try:
+        with Image.open(BytesIO(image_bytes)) as image:
+            detected_content_type = IMAGE_FORMAT_MIME.get((image.format or "").upper())
+            image.verify()
+    except (Image.DecompressionBombError, UnidentifiedImageError, OSError, ValueError):
+        raise HTTPException(status_code=400, detail="Isi file bukan gambar JPEG atau PNG yang valid")
+
+    if detected_content_type not in settings.ALLOWED_IMAGE_MIME:
+        raise HTTPException(status_code=400, detail="Format gambar tidak didukung")
+
+    if detected_content_type != declared_content_type:
+        raise HTTPException(status_code=400, detail="Tipe file tidak sesuai dengan isi gambar")
+
+    return detected_content_type
+
+
 @router.post("/diagnose")
 async def process_dental_diagnosis(
     file: UploadFile = File(...),
@@ -54,6 +82,9 @@ async def process_dental_diagnosis(
     patientGender: Optional[str] = Form(None),
 ):
     trace_id = str(uuid.uuid4())
+    image_object_path: Optional[str] = None
+    scan_persisted = False
+
     try:
         logger.info(
             "diagnose.request_started trace_id=%s doctor_id=%s filename=%s content_type=%s",
@@ -81,7 +112,7 @@ async def process_dental_diagnosis(
         if not normalized_diagnosis:
             raise HTTPException(status_code=400, detail="diagnosisAwal minimal 1 item")
 
-        content_type = (file.content_type or "").lower()
+        content_type = (file.content_type or "").split(";", 1)[0].strip().lower()
         if content_type not in settings.ALLOWED_IMAGE_MIME:
             raise HTTPException(status_code=400, detail="Tipe file tidak didukung")
 
@@ -90,6 +121,8 @@ async def process_dental_diagnosis(
             raise HTTPException(status_code=400, detail="File gambar kosong")
         if len(image_bytes) > settings.MAX_UPLOAD_BYTES:
             raise HTTPException(status_code=413, detail="Ukuran file terlalu besar")
+
+        content_type = validate_image_content(image_bytes, content_type)
 
         safe_filename = file.filename or "upload.jpg"
         image_sha256 = hashlib.sha256(image_bytes).hexdigest()
@@ -109,10 +142,10 @@ async def process_dental_diagnosis(
             address=homebaseAddress,
         )
 
-        image_url = await upload_scan_image(
+        image_object_path = await upload_scan_image(
             image_bytes=image_bytes,
             filename=safe_filename,
-            content_type=file.content_type,
+            content_type=content_type,
             doctor_id=current_user.id,
         )
 
@@ -126,26 +159,28 @@ async def process_dental_diagnosis(
             "diagnosisAwal": normalized_diagnosis,
             "catatanDokter": catatanDokter,
             "filename": safe_filename,
-            "mimeType": file.content_type,
+            "mimeType": content_type,
             "fileSize": len(image_bytes),
             "imageSha256": image_sha256,
-            "imageUrl": image_url,
+            "imageObjectPath": image_object_path,
+            "imageUrl": None,
             "status": "UPLOADED",
             "predictions": Json({"predictions": []}),
         }
 
         saved_scan = await db.scanhistory.create(data=create_data)
+        scan_persisted = True
         result_number = create_result_number(saved_scan.id, saved_scan.createdAt)
         saved_scan = await db.scanhistory.update(
             where={"id": saved_scan.id},
             data={"status": "PROCESSING", "resultNumber": result_number},
         )
         logger.info(
-            "diagnose.image_uploaded trace_id=%s scan_id=%s bytes=%s image_url_present=%s",
+            "diagnose.image_uploaded trace_id=%s scan_id=%s bytes=%s image_path_present=%s",
             trace_id,
             saved_scan.id,
             len(image_bytes),
-            bool(image_url),
+            bool(image_object_path),
         )
 
         status, predictions_for_db, result_label, result_confidence, error_message = await process_inference(
@@ -174,6 +209,17 @@ async def process_dental_diagnosis(
 
         image_size = get_prediction_image_size(predictions_for_db)
 
+        signed_image_url = None
+
+        try:
+            signed_image_url = await create_signed_image_url(image_object_path)
+        except Exception:
+            logger.exception(
+                "diagnose.signed_url_failed trace_id=%s scan_id=%s",
+                trace_id,
+                saved_scan.id,
+            )
+
         response_data: Dict[str, Any] = {
             "id": saved_scan.id,
             "resultNumber": saved_scan.resultNumber,
@@ -182,7 +228,7 @@ async def process_dental_diagnosis(
             "resultConfidence": saved_scan.resultConfidence,
             "imageWidth": image_size["width"],
             "imageHeight": image_size["height"],
-            "imageUrl": saved_scan.imageUrl,
+            "imageUrl": signed_image_url,
             "predictions": normalize_predictions(predictions_for_db),
         }
         if status != "DONE":
@@ -194,6 +240,16 @@ async def process_dental_diagnosis(
             "data": response_data,
         }
     except Exception as e:
+        if image_object_path and not scan_persisted:
+            try:
+                await delete_scan_image(image_object_path)
+            except Exception:
+                logger.exception(
+                    "diagnose.orphan_cleanup_failed trace_id=%s object_path=%s",
+                    trace_id,
+                    image_object_path,
+                )
+
         if isinstance(e, HTTPException):
             raise e
         logger.exception("diagnose.unhandled_exception trace_id=%s", trace_id)
