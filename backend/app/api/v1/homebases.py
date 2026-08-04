@@ -1,3 +1,4 @@
+import logging
 from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -7,6 +8,7 @@ from app.api.deps import get_current_user
 from app.database.db import db
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 ALLOWED_HOMEBASE_TYPES = {"RUMAH_SAKIT", "KLINIK", "LAINNYA"}
 
@@ -14,6 +16,17 @@ class HomebaseCreateRequest(BaseModel):
     type: str = "RUMAH_SAKIT"
     name: str
     address: str
+
+
+def serialize_homebase(homebase):
+    return {
+        "id": homebase.id,
+        "type": homebase.type,
+        "name": homebase.name,
+        "address": homebase.address,
+        "createdAt": homebase.createdAt,
+        "updatedAt": homebase.updatedAt,
+    }
 
 def normalize_homebase_type(value: str) -> str:
     normalized = (value or "").strip().upper()
@@ -51,12 +64,13 @@ async def get_homebases(
             "message": "OK",
             "data": {
                 "total": total,
-                "items": items,
+                "items": [serialize_homebase(item) for item in items],
             }
         }
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("homebases.list_failed doctor_id=%s", current_user.id)
+        raise HTTPException(status_code=500, detail="Gagal mengambil data homebase")
 
 
 @router.post("/homebases")
@@ -82,7 +96,7 @@ async def create_homebase(
         )
 
         if existing:
-            return {"success": True, "message": "OK", "data": existing}
+            return {"success": True, "message": "OK", "data": serialize_homebase(existing)}
 
         item = await db.homebase.create(
             data={
@@ -93,6 +107,13 @@ async def create_homebase(
             }
         )
 
-        return {"success": True, "message": "Homebase berhasil dibuat", "data": item}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "success": True,
+            "message": "Homebase berhasil dibuat",
+            "data": serialize_homebase(item),
+        }
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("homebases.create_failed doctor_id=%s", current_user.id)
+        raise HTTPException(status_code=500, detail="Gagal membuat homebase")

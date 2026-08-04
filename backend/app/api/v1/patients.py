@@ -1,3 +1,4 @@
+import logging
 from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -6,6 +7,19 @@ from app.api.deps import get_current_user
 from app.database.db import db
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def serialize_patient(patient):
+    return {
+        "id": patient.id,
+        "medicalId": patient.medicalId,
+        "name": patient.name,
+        "age": patient.age,
+        "gender": patient.gender,
+        "createdAt": patient.createdAt,
+        "updatedAt": patient.updatedAt,
+    }
 
 
 @router.get("/patients")
@@ -36,9 +50,9 @@ async def get_patients(
             "message": "OK",
             "data": {
                 "total": total,
-                "items": items,
+                "items": [serialize_patient(item) for item in items],
             },
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
+    except Exception:
+        logger.exception("patients.list_failed doctor_id=%s", current_user.id)
+        raise HTTPException(status_code=500, detail="Gagal mengambil data pasien")

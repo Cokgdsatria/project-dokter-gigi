@@ -1,6 +1,6 @@
 ﻿from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class TokenData(BaseModel):
     id: str
@@ -22,10 +22,20 @@ class UserResponse(BaseModel):
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
+    expires_in: int
     user: Optional[UserResponse] = None
 
-class RegisterResponse(BaseModel):
+
+class RegisterResponse(Token):
     user: UserResponse
-    access_token: str
-    token_type: str
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str = Field(min_length=32, max_length=512)
+
+
+class LogoutResponse(BaseModel):
+    success: bool
+    message: str

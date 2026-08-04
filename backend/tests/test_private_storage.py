@@ -72,6 +72,15 @@ class ImageValidationTests(TestCase):
 
         self.assertEqual(context.exception.status_code, 400)
 
+    @patch("app.api.v1.diagnose.settings.MAX_IMAGE_PIXELS", 4)
+    def test_rejects_excessive_pixel_count(self):
+        image_bytes = make_image_bytes("JPEG")
+
+        with self.assertRaises(HTTPException) as context:
+            validate_image_content(image_bytes, "image/jpeg")
+
+        self.assertEqual(context.exception.status_code, 400)
+
     def test_storage_filename_uses_verified_mime_extension(self):
         self.assertEqual(
             _safe_file_name("rontgen.exe", "image/png"),
@@ -104,16 +113,14 @@ class HistorySerializationTests(IsolatedAsyncioTestCase):
         create_signed_urls_mock.assert_awaited_once_with([item.imageObjectPath])
 
     @patch("app.api.v1.history.create_signed_image_urls", new_callable=AsyncMock)
-    async def test_legacy_item_keeps_temporary_url_fallback(
+    async def test_public_image_url_is_never_returned(
         self,
         create_signed_urls_mock,
     ):
-        item = make_history_item(
-            imageObjectPath=None,
-            imageUrl="https://example.test/legacy",
-        )
+        item = make_history_item(imageUrl="https://example.test/public")
+        create_signed_urls_mock.return_value = {}
 
         serialized = await serialize_history_items([item])
 
-        self.assertEqual(serialized[0]["imageUrl"], item.imageUrl)
-        create_signed_urls_mock.assert_not_awaited()
+        self.assertIsNone(serialized[0]["imageUrl"])
+        create_signed_urls_mock.assert_awaited_once_with([item.imageObjectPath])
