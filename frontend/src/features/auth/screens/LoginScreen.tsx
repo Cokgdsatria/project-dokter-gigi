@@ -48,7 +48,7 @@ export function LoginScreen() {
       setIsSubmitting(true);
       setErrorMessage('');
       const response = await login({ email: email.trim(), password });
-      setAuthSession(response.access_token, response.token_type, response.user);
+      await setAuthSession(response.access_token, response.token_type, response.user);
       router.replace('/dashboard');
     } catch (error) {
       setErrorMessage(toFriendlyError(error, 'Login gagal. Periksa email dan password.'));
