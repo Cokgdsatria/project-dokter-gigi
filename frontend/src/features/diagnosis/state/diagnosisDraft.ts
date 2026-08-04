@@ -20,14 +20,21 @@ export type DiagnosisDraft = {
   doctorNote?: string;
 };
 
-type EditableDiagnosisDraft = Partial<DiagnosisDraft>;
+type EditableDiagnosisDraft = Partial<DiagnosisDraft> & {
+  idempotencyKey?: string;
+};
 
 let diagnosisDraft: EditableDiagnosisDraft = {};
 
 export function updateDiagnosisDraft(nextDraft: EditableDiagnosisDraft) {
+  const changesDiagnosisInput = Object.keys(nextDraft).some(
+    (key) => key !== 'idempotencyKey' && nextDraft[key as keyof EditableDiagnosisDraft] !== diagnosisDraft[key as keyof EditableDiagnosisDraft],
+  );
+
   diagnosisDraft = {
     ...diagnosisDraft,
     ...nextDraft,
+    ...(changesDiagnosisInput ? { idempotencyKey: undefined } : {}),
   };
 }
 
@@ -53,7 +60,17 @@ export function getCompleteDiagnosisDraft(): DiagnosisDraft | null {
   return diagnosisDraft as DiagnosisDraft;
 }
 
+export function getOrCreateDiagnosisIdempotencyKey(): string {
+  if (!diagnosisDraft.idempotencyKey) {
+    diagnosisDraft.idempotencyKey =
+      typeof globalThis.crypto?.randomUUID === 'function'
+        ? globalThis.crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+
+  return diagnosisDraft.idempotencyKey;
+}
+
 export function clearDiagnosisDraft() {
   diagnosisDraft = {};
 }
-

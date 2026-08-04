@@ -1,10 +1,10 @@
-import { Platform } from 'react-native';
+import { authenticatedFetch } from '../../features/auth/api/authSession';
+import { API_BASE_URL } from './config';
 
-export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL ??
-  (Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://127.0.0.1:8000');
+export { API_BASE_URL } from './config';
 
 type ApiRequestOptions = RequestInit & {
+  authenticated?: boolean;
   formUrlEncoded?: boolean;
 };
 
@@ -30,8 +30,9 @@ function getApiErrorMessage(data: any) {
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const { formUrlEncoded = false, headers, ...requestOptions } = options;
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const { authenticated = false, formUrlEncoded = false, headers, ...requestOptions } = options;
+  const request = authenticated ? authenticatedFetch : fetch;
+  const response = await request(`${API_BASE_URL}${path}`, {
     ...requestOptions,
     headers: {
       ...(formUrlEncoded ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),

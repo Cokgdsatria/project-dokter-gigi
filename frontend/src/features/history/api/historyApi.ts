@@ -1,5 +1,4 @@
-import { API_BASE_URL } from '../../../shared/api/client';
-import { getAuthSession } from '../../auth/api/authSession';
+import { apiRequest } from '../../../shared/api/client';
 import type { AuthUser } from '../../auth/api/authApi';
 import type { DiagnosisPrediction } from '../../diagnosis/api/diagnosisApi';
 
@@ -54,50 +53,18 @@ type HistoryResponse = {
   };
 };
 
-function parseHistoryError(data: any) {
-  const message = data?.detail ?? data?.message ?? 'Gagal mengambil riwayat';
-  return typeof message === 'string' && message.trim() ? message : 'Gagal mengambil riwayat';
-}
-
 export async function getHistory(): Promise<HistoryItem[]> {
-  const session = getAuthSession();
-  if (!session.accessToken) {
-    throw new Error('Sesi login tidak ditemukan. Silakan login ulang.');
-  }
-
-  const response = await fetch(`${API_BASE_URL}/api/v1/history`, {
-    headers: {
-      Authorization: `Bearer ${session.accessToken}`,
-    },
+  const response = await apiRequest<HistoryResponse>('/api/v1/history', {
+    authenticated: true,
   });
-
-  const data = await response.json();
-
-  if (!response.ok || !data.success) {
-    throw new Error(parseHistoryError(data));
-  }
-
-  return (data as HistoryResponse).data.items;
+  return response.data.items;
 }
+
 export async function getHistoryDetail(id: string): Promise<HistoryDetail> {
-  const session = getAuthSession();
-  if (!session.accessToken) {
-    throw new Error('Sesi login tidak ditemukan. Silakan login ulang.');
-  }
-
-  const response = await fetch(`${API_BASE_URL}/api/v1/history/${id}`, {
-    headers: {
-      Authorization: `Bearer ${session.accessToken}`,
-    },
+  const response = await apiRequest<HistoryDetailResponse>(`/api/v1/history/${id}`, {
+    authenticated: true,
   });
-
-  const data = await response.json();
-
-  if (!response.ok || !data.success) {
-    throw new Error(parseHistoryError(data));
-  }
-
-  return (data as HistoryDetailResponse).data;
+  return response.data;
 }
 
 

@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { register } from '../api/authApi';
+import { setAuthSession } from '../api/authSession';
 import { AppButton } from '../../../shared/components/AppButton';
 import { AuthSelectField } from '../../../shared/components/AuthSelectField';
 import { AuthTextField } from '../../../shared/components/AuthTextField';
@@ -62,14 +63,20 @@ export function SignUpScreen() {
     try {
       setIsSubmitting(true);
       setErrorMessage('');
-      await register({
+      const response = await register({
         email: email.trim(),
         password,
         fullname: name.trim(),
         phone: phone.trim(),
         position,
       });
-      router.replace('/login');
+      await setAuthSession({
+        accessToken: response.access_token,
+        refreshToken: response.refresh_token,
+        tokenType: response.token_type,
+        user: response.user,
+      });
+      router.replace('/dashboard');
     } catch (error) {
       setErrorMessage(toFriendlyError(error, 'Registrasi gagal. Periksa kembali data yang diisi.'));
     } finally {
