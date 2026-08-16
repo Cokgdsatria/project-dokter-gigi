@@ -16,8 +16,6 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
-# Prisma / Database artifacts
-prisma/migrations/
 
 # Debug artifacts
 .dbg/
