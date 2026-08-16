@@ -5,10 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "preDeployCommand": "python -m prisma migrate deploy",
-    "startCommand": "python app/start.py",
-    "healthcheckPath": "/ready",
-    "healthcheckTimeout": 100,
+    "startCommand": "python -m app.worker",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
