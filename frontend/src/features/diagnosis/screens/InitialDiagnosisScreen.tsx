@@ -16,7 +16,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DiagnosisSelectField } from '../components/DiagnosisSelectField';
 import { DiagnosisTextField } from '../components/DiagnosisTextField';
-import { updateDiagnosisDraft, type BackendHomebaseType, type PatientGender } from '../state/diagnosisDraft';
+import {
+  getDiagnosisDraft,
+  updateDiagnosisDraft,
+  type BackendHomebaseType,
+  type PatientGender,
+} from '../state/diagnosisDraft';
 import { AppButton } from '../../../shared/components/AppButton';
 import { appColors } from '../../../shared/theme/colors';
 import { searchPatients, type PatientOption } from '../api/patientApi';
@@ -37,6 +42,18 @@ function toBackendHomebaseType(homebase: string): BackendHomebaseType {
   return 'LAINNYA';
 }
 
+function toDisplayHomebaseType(homebase?: BackendHomebaseType) {
+  if (homebase === 'KLINIK') {
+    return 'Klinik';
+  }
+
+  if (homebase === 'LAINNYA') {
+    return 'Lainnya';
+  }
+
+  return 'Rumah Sakit';
+}
+
 export function InitialDiagnosisScreen() {
   const { width, height } = useWindowDimensions();
   const [homebase, setHomebase] = useState('Rumah Sakit');
@@ -55,12 +72,16 @@ export function InitialDiagnosisScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setHomebaseName('');
-      setHomebaseAddress('');
-      setPatientMedicalId('');
-      setPatientName('');
-      setPatientAge('');
-      setPatientGender('Laki-laki');
+      const draft = getDiagnosisDraft();
+
+      setHomebase(toDisplayHomebaseType(draft.homebaseType));
+      setHomebaseName(draft.homebaseName ?? '');
+      setHomebaseAddress(draft.homebaseAddress ?? '');
+      setPatientMedicalId(draft.patientMedicalId ?? '');
+      setPatientName(draft.patientName ?? '');
+      setPatientAge(draft.patientAge ? String(draft.patientAge) : '');
+      setPatientGender(draft.patientGender ?? 'Laki-laki');
+      setPatientSuggestions([]);
       setIsHomebaseOpen(false);
       setIsGenderOpen(false);
     }, [])

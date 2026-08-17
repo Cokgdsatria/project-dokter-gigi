@@ -75,7 +75,7 @@ export function LoginScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Kembali ke halaman awal"
-          onPress={() => router.back()}
+          onPress={() => router.replace('/')}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
           <View style={styles.backChevron} />
         </Pressable>
@@ -131,6 +131,16 @@ export function LoginScreen() {
                   disabled={isSubmitting}
                   onPress={handleLogin}
                 />
+                <View style={styles.signUpPrompt}>
+                  <Text style={styles.signUpPromptText}>Belum punya akun?</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Buka halaman pendaftaran"
+                    onPress={() => router.replace('/signup')}
+                    style={({ pressed }) => pressed && styles.pressed}>
+                    <Text style={styles.signUpLink}>Sign Up</Text>
+                  </Pressable>
+                </View>
                 <Text style={styles.loginWithText}>Login Dengan</Text>
                 <Pressable style={({ pressed }) => [styles.googleButton, pressed && styles.pressed]}>
                   <Text style={styles.googleText}>G</Text>
@@ -207,6 +217,22 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
     marginBottom: 54,
+  },
+  signUpPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  signUpPromptText: {
+    color: '#6F6F6F',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  signUpLink: {
+    color: appColors.blue,
+    fontSize: 15,
+    fontWeight: '800',
   },
   form: {
     gap: 34,

@@ -97,7 +97,7 @@ export function SignUpScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Kembali ke halaman awal"
-          onPress={() => router.back()}
+          onPress={() => router.replace('/')}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
           <View style={styles.backChevron} />
         </Pressable>
