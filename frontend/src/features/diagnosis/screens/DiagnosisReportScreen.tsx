@@ -1,5 +1,6 @@
 ﻿import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
@@ -137,17 +138,27 @@ export function DiagnosisReportScreen({ backToHistory = false }: DiagnosisReport
     try {
       const pdf = await Print.printToFileAsync({
         html: buildReportHtml(currentReport),
-        base64: false,
+        base64: true,
       });
+      let pdfUri = pdf.uri;
+
+      if (pdf.base64 && FileSystem.cacheDirectory) {
+        const safeResultNumber = currentReport.resultNumber.replace(/[^a-zA-Z0-9_-]/g, '-');
+        pdfUri = `${FileSystem.cacheDirectory}CekGigi-${safeResultNumber}.pdf`;
+        await FileSystem.writeAsStringAsync(pdfUri, pdf.base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      }
+
       const canShare = await Sharing.isAvailableAsync();
       if (!canShare) {
-        Alert.alert('PDF berhasil dibuat', pdf.uri);
+        Alert.alert('PDF berhasil dibuat', pdfUri);
         return;
       }
 
-      await Sharing.shareAsync(pdf.uri, {
+      await Sharing.shareAsync(pdfUri, {
         mimeType: 'application/pdf',
-        dialogTitle: `Download Report ${currentReport.resultNumber}`,
+        dialogTitle: `Simpan Report ${currentReport.resultNumber}`,
         UTI: 'com.adobe.pdf',
       });
     } catch (error) {

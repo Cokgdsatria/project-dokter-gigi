@@ -3,6 +3,7 @@ import { Image, Pressable, StyleSheet, View, useWindowDimensions } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DashboardActionCard } from '../components/DashboardActionCard';
+import { clearDiagnosisDraft } from '../../diagnosis/state/diagnosisDraft';
 import { appColors } from '../../../shared/theme/colors';
 
 const logo = require('../../../../assets/logo/logo_CekGigi.png');
@@ -10,6 +11,11 @@ const logo = require('../../../../assets/logo/logo_CekGigi.png');
 export function DashboardScreen() {
   const { width } = useWindowDimensions();
   const contentPadding = Math.min(34, Math.max(20, width * 0.045));
+
+  function handleStartDiagnosis() {
+    clearDiagnosisDraft();
+    router.push('/diagnosis-initial');
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right', 'bottom']}>
@@ -26,7 +32,7 @@ export function DashboardScreen() {
             description="Analisis Hasil Ronsen"
             actionLabel="Mulai Analisis"
             icon="checkup"
-            onPress={() => router.push('/diagnosis-initial')}
+            onPress={handleStartDiagnosis}
           />
           <DashboardActionCard
             title="Riwayat Check-up"

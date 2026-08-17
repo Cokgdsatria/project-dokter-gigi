@@ -19,7 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DiagnosisTextField } from '../components/DiagnosisTextField';
 import { ImageUploadBox } from '../components/ImageUploadBox';
-import { updateDiagnosisDraft } from '../state/diagnosisDraft';
+import { getDiagnosisDraft, updateDiagnosisDraft } from '../state/diagnosisDraft';
 import { AppButton } from '../../../shared/components/AppButton';
 import { appColors } from '../../../shared/theme/colors';
 
@@ -40,7 +40,14 @@ export function DiagnosisDetailScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setDoctorNote('');
+      const draft = getDiagnosisDraft();
+
+      setImageUri(draft.imageUri ?? null);
+      setImageName(draft.imageName);
+      setImageMimeType(draft.imageMimeType);
+      setImageSize(draft.imageSize);
+      setDiagnoses(draft.diagnoses ? [...draft.diagnoses] : []);
+      setDoctorNote(draft.doctorNote ?? '');
     }, [])
   );
 
@@ -62,6 +69,7 @@ export function DiagnosisDetailScreen() {
       setImageUri(selectedImage?.uri ?? null);
       setImageName(selectedImage?.fileName ?? undefined);
       setImageMimeType(selectedImage?.mimeType ?? undefined);
+      setImageSize(selectedImage?.fileSize ?? undefined);
     }
   }
 
@@ -112,6 +120,18 @@ export function DiagnosisDetailScreen() {
     router.push('/diagnosis-loading');
   }
 
+  function handleBack() {
+    updateDiagnosisDraft({
+      imageUri: imageUri ?? undefined,
+      imageName,
+      imageMimeType,
+      imageSize,
+      diagnoses,
+      doctorNote,
+    });
+    router.back();
+  }
+
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right', 'bottom']}>
       <KeyboardAvoidingView
@@ -132,7 +152,7 @@ export function DiagnosisDetailScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Kembali ke form homebase"
-              onPress={() => router.back()}
+              onPress={handleBack}
               style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
               <View style={styles.backChevron} />
             </Pressable>
@@ -191,7 +211,7 @@ export function DiagnosisDetailScreen() {
 
           <View style={styles.footer}>
             <AppButton title="Lanjut" onPress={handleContinue} />
-            <AppButton title="Kembali" variant="secondary" onPress={() => router.back()} />
+            <AppButton title="Kembali" variant="secondary" onPress={handleBack} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
