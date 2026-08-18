@@ -15,8 +15,8 @@ export function ImageUploadBox({ imageUri, onPress }: ImageUploadBoxProps) {
       ) : (
         <View style={styles.placeholder}>
           <UploadIcon />
-          <Text style={styles.title}>Upload image</Text>
-          <Text style={styles.subtitle}>Png/Jpeg Max. 2Mb</Text>
+          <Text style={styles.title}>Unggah radiograf</Text>
+          <Text style={styles.subtitle}>PNG/JPEG maks. 10 MB</Text>
         </View>
       )}
     </Pressable>
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderWidth: 5,
-    borderColor: '#31AFCB',
+    borderColor: appColors.aquaStrong,
     borderRadius: 6,
     overflow: 'hidden',
   },
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderLeftWidth: 5,
     borderTopWidth: 5,
-    borderColor: '#31AFCB',
+    borderColor: appColors.aquaStrong,
     transform: [{ rotate: '45deg' }],
   },
   mountainRight: {
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderLeftWidth: 5,
     borderTopWidth: 5,
-    borderColor: '#31AFCB',
+    borderColor: appColors.aquaStrong,
     transform: [{ rotate: '45deg' }],
   },
   uploadLine: {
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     width: 5,
     height: 30,
     borderRadius: 3,
-    backgroundColor: '#31AFCB',
+    backgroundColor: appColors.aquaStrong,
   },
   uploadHeadLeft: {
     position: 'absolute',
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#31AFCB',
+    backgroundColor: appColors.aquaStrong,
     transform: [{ rotate: '-45deg' }],
   },
   uploadHeadRight: {
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#31AFCB',
+    backgroundColor: appColors.aquaStrong,
     transform: [{ rotate: '45deg' }],
   },
 });

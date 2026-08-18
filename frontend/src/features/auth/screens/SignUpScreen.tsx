@@ -20,6 +20,7 @@ import { setAuthSession } from '../api/authSession';
 import { AppButton } from '../../../shared/components/AppButton';
 import { AuthSelectField } from '../../../shared/components/AuthSelectField';
 import { AuthTextField } from '../../../shared/components/AuthTextField';
+import { APP_LONG_NAME, APP_NAME } from '../../../shared/brand';
 import { appColors } from '../../../shared/theme/colors';
 import { toFriendlyError } from '../../../shared/api/errorMessages'; 
 
@@ -122,6 +123,8 @@ export function SignUpScreen() {
                 resizeMode="contain"
                 style={{ width: logoWidth, height: logoHeight }}
               />
+              <Text style={styles.brandName}>{APP_NAME}</Text>
+              <Text style={styles.brandLongName}>{APP_LONG_NAME}</Text>
             </View>
 
             <View style={[styles.card, { minHeight: cardMinHeight }]}>
@@ -240,7 +243,20 @@ const styles = StyleSheet.create({
   },
   logoWrap: {
     alignItems: 'center',
-    marginBottom: 54,
+    marginBottom: 34,
+  },
+  brandName: {
+    color: appColors.blueDeep,
+    fontSize: 26,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  brandLongName: {
+    color: '#5F5672',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 2,
   },
   card: {
     backgroundColor: appColors.white,
