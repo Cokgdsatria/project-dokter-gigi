@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   bottomNav: {
-    height: 80,
+    height: 64,
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
     backgroundColor: '#FDFDFD',
@@ -155,8 +155,8 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   navButton: {
-    width: 64,
-    height: 64,
+    width: 52,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
   },

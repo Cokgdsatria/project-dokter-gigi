@@ -7,6 +7,7 @@ import { getProfile, updateProfile } from '../api/profileApi';
 import { AuthTextField } from '../../../shared/components/AuthTextField';
 import { AppButton } from '../../../shared/components/AppButton';
 import { AuthSelectField } from '@/shared/components/AuthSelectField';
+import { appColors } from '../../../shared/theme/colors';
 import {
     getAuthSession,
     logoutAuthSession,
@@ -73,8 +74,12 @@ export function ProfileScreen() {
     return (
         <SafeAreaView style={styles.screen}>
             <ScrollView contentContainerStyle={styles.content}>
-                <Pressable onPress={() => router.back()}>
-                    <Text style={styles.back}>&lt; Kembali</Text>
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Kembali ke dashboard"
+                    onPress={() => router.back()}
+                    style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
+                    <View style={styles.backChevron} />
                 </Pressable>
 
                 <Text style={styles.title}>Profile Dokter</Text>
@@ -124,9 +129,33 @@ export function ProfileScreen() {
 const styles=StyleSheet.create({
     screen: { flex: 1, backgroundColor: '#FAFAFA' },
   content: { padding: 24, paddingBottom: 48 },
-  back: { fontSize: 17, color: '#2398C9', fontWeight: '700' },
-  title: { marginTop: 30, marginBottom: 36, fontSize: 32, fontWeight: '800' },
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: appColors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: appColors.blueDeep,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.16,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  backChevron: {
+    width: 13,
+    height: 13,
+    borderLeftWidth: 3,
+    borderBottomWidth: 3,
+    borderColor: appColors.blue,
+    transform: [{ rotate: '45deg' }],
+    marginLeft: 4,
+  },
+  pressed: {
+    opacity: 0.68,
+  },
+  title: { marginTop: 26, marginBottom: 36, fontSize: 32, fontWeight: '800' },
   form: { gap: 28 },
   label: { fontSize: 20, fontWeight: '700', marginBottom: 10 },
-  email: { fontSize: 18, color: '#666666', borderBottomWidth: 2, borderBottomColor: '#D9F2F5', paddingBottom: 10 },
+  email: { fontSize: 18, color: '#666666', borderBottomWidth: 2, borderBottomColor: appColors.aquaStrong, paddingBottom: 10 },
 })
