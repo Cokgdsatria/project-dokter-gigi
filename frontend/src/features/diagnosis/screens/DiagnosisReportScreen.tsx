@@ -3,8 +3,8 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useMemo } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getDiagnosisReport } from '../state/diagnosisReport';
@@ -46,17 +46,206 @@ function getDoctorName(name?: string | null) {
   return name?.trim() || '-';
 }
 
-function buildReportHtml(report: NonNullable<ReturnType<typeof getDiagnosisReport>>) {
+function getImageMimeType(uri: string, contentType?: string | null) {
+  const normalizedContentType = contentType?.split(';')[0]?.trim().toLowerCase();
+  if (normalizedContentType?.startsWith('image/')) {
+    return normalizedContentType;
+  }
+
+  const path = uri.split('?')[0].toLowerCase();
+  if (path.endsWith('.png')) {
+    return 'image/png';
+  }
+  if (path.endsWith('.webp')) {
+    return 'image/webp';
+  }
+  return 'image/jpeg';
+}
+
+function getHeaderValue(headers: Record<string, string>, name: string) {
+  const expectedName = name.toLowerCase();
+  const matchingHeader = Object.entries(headers).find(
+    ([headerName]) => headerName.toLowerCase() === expectedName,
+  );
+  return matchingHeader?.[1];
+}
+
+function blobToDataUri(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error('Format gambar rontgen tidak dapat dibaca.'));
+    };
+    reader.onerror = () => reject(new Error('Gambar rontgen gagal dibaca.'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function imageUriToDataUri(uri: string) {
+  if (uri.startsWith('data:')) {
+    return uri;
+  }
+
+  if (Platform.OS === 'web') {
+    const response = await fetch(uri, { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`Gambar rontgen gagal diunduh (HTTP ${response.status}).`);
+    }
+    const blob = await response.blob();
+    if (!blob.type.startsWith('image/')) {
+      throw new Error('File rontgen yang diterima bukan gambar yang valid.');
+    }
+    return blobToDataUri(blob);
+  }
+
+  let readableUri = uri;
+  let temporaryUri: string | null = null;
+  let mimeType = getImageMimeType(uri);
+
+  try {
+    if (/^https?:\/\//i.test(uri)) {
+      if (!FileSystem.cacheDirectory) {
+        throw new Error('Penyimpanan sementara tidak tersedia.');
+      }
+
+      temporaryUri = `${FileSystem.cacheDirectory}radia-xray-${Date.now()}`;
+      const download = await FileSystem.downloadAsync(uri, temporaryUri);
+      if (download.status < 200 || download.status >= 300) {
+        throw new Error(`Gambar rontgen gagal diunduh (HTTP ${download.status}).`);
+      }
+      readableUri = download.uri;
+      mimeType = getImageMimeType(uri, getHeaderValue(download.headers, 'content-type'));
+    }
+
+    const base64 = await FileSystem.readAsStringAsync(readableUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return `data:${mimeType};base64,${base64}`;
+  } finally {
+    if (temporaryUri) {
+      await FileSystem.deleteAsync(temporaryUri, { idempotent: true }).catch(() => undefined);
+    }
+  }
+}
+
+function buildPredictionOverlay(
+  predictions: DiagnosisPrediction[],
+  imageWidth?: number | null,
+  imageHeight?: number | null,
+) {
+  const sourceWidth = imageWidth && imageWidth > 0 ? imageWidth : 640;
+  const sourceHeight = imageHeight && imageHeight > 0 ? imageHeight : 640;
+  const polygons = predictions
+    .map((prediction) => {
+      const points = (prediction.points ?? [])
+        .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+        .map((point) => `${point.x},${point.y}`)
+        .join(' ');
+
+      return points
+        ? `<polygon points="${points}" fill="rgba(139, 92, 246, 0.30)" stroke="#6D4CC3" stroke-width="2" />`
+        : '';
+    })
+    .join('');
+
+  if (!polygons) {
+    return '';
+  }
+
+  return `<svg class="segmentation" viewBox="0 0 ${sourceWidth} ${sourceHeight}" preserveAspectRatio="none">${polygons}</svg>`;
+}
+
+async function printReportHtmlOnWeb(html: string) {
+  if (typeof document === 'undefined') {
+    throw new Error('Fitur cetak tidak tersedia pada perangkat ini.');
+  }
+
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('title', 'RADIA PDF Report');
+  Object.assign(iframe.style, {
+    position: 'fixed',
+    right: '0',
+    bottom: '0',
+    width: '1px',
+    height: '1px',
+    border: '0',
+    opacity: '0',
+    pointerEvents: 'none',
+  });
+  document.body.appendChild(iframe);
+
+  const frameWindow = iframe.contentWindow;
+  const frameDocument = frameWindow?.document;
+  if (!frameWindow || !frameDocument) {
+    iframe.remove();
+    throw new Error('Dokumen PDF gagal disiapkan.');
+  }
+
+  frameDocument.open();
+  frameDocument.write(html);
+  frameDocument.close();
+
+  const images = Array.from(frameDocument.images);
+  await Promise.all(
+    images.map(
+      (image) =>
+        new Promise<void>((resolve, reject) => {
+          if (image.complete) {
+            image.naturalWidth > 0
+              ? resolve()
+              : reject(new Error('Gambar rontgen gagal dimuat ke dokumen PDF.'));
+            return;
+          }
+          image.addEventListener('load', () => resolve(), { once: true });
+          image.addEventListener(
+            'error',
+            () => reject(new Error('Gambar rontgen gagal dimuat ke dokumen PDF.')),
+            { once: true },
+          );
+        }),
+    ),
+  );
+
+  await new Promise<void>((resolve) => {
+    frameWindow.requestAnimationFrame(() => frameWindow.requestAnimationFrame(() => resolve()));
+  });
+
+  const cleanup = () => iframe.remove();
+  frameWindow.addEventListener('afterprint', cleanup, { once: true });
+  frameWindow.focus();
+  frameWindow.print();
+  window.setTimeout(cleanup, 60_000);
+}
+
+function buildReportHtml(
+  report: NonNullable<ReturnType<typeof getDiagnosisReport>>,
+  embeddedImageUri: string,
+) {
   const resultLabel = getResultLabel(report.response.data.resultLabel);
   const dateLabel = formatDate(report.createdAt);
   const doctorName = getDoctorName(report.doctor?.fullname);
   const doctorPhone = report.doctor?.phone || '-';
   const doctorPosition = report.doctor?.position || 'Dokter Gigi';
   const note = report.draft.doctorNote?.trim() || '-';
-  const reportImageUri = report.response.data.imageUrl || report.draft.imageUri;
-  const imageTag = reportImageUri
-    ? `<img class="xray" src="${reportImageUri}" />`
-    : '<div class="xray placeholder">Foto Rontgen</div>';
+  const sourceWidth = report.response.data.imageWidth || 640;
+  const sourceHeight = report.response.data.imageHeight || 640;
+  const imageScale = Math.min(310 / sourceWidth, 220 / sourceHeight);
+  const printImageWidth = Math.max(1, Math.round(sourceWidth * imageScale));
+  const printImageHeight = Math.max(1, Math.round(sourceHeight * imageScale));
+  const predictionOverlay = buildPredictionOverlay(
+    report.response.data.predictions ?? [],
+    sourceWidth,
+    sourceHeight,
+  );
+  const imageTag = `
+    <div class="xray-frame" style="width: ${printImageWidth}px; height: ${printImageHeight}px">
+      <img class="xray" src="${escapeHtml(embeddedImageUri)}" alt="Radiograf dental" />
+      ${predictionOverlay}
+    </div>`;
 
   return `
     <!doctype html>
@@ -64,13 +253,17 @@ function buildReportHtml(report: NonNullable<ReturnType<typeof getDiagnosisRepor
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>
-          body { font-family: Arial, sans-serif; color: #111; padding: 32px; }
+          @page { size: A4; margin: 14mm; }
+          * { box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; color: #111; padding: 18px; margin: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
           .brand { text-align: center; color: #3D2A73; font-size: 24px; font-weight: 800; margin-bottom: 22px; }
           .line { border-top: 2px solid #6D4CC3; margin: 0 0 8px; }
           .meta { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 42px; }
           .info { font-size: 12px; line-height: 1.45; margin-left: 8px; }
           .image-wrap { text-align: center; margin: 36px 0 8px; }
-          .xray { width: 310px; max-height: 220px; object-fit: cover; }
+          .xray-frame { position: relative; max-width: 100%; margin: 0 auto; overflow: hidden; background: #EFE9FF; }
+          .xray { display: block; width: 100%; height: 100%; object-fit: contain; }
+          .segmentation { position: absolute; inset: 0; width: 100%; height: 100%; }
           .image-number { text-align: center; font-size: 12px; margin-bottom: 14px; }
           .result-title { text-align: center; font-family: Georgia, serif; font-size: 25px; margin: 0; }
           .result { text-align: center; font-family: Georgia, serif; font-size: 32px; font-weight: 700; margin: 6px 0 34px; }
@@ -112,6 +305,7 @@ function buildReportHtml(report: NonNullable<ReturnType<typeof getDiagnosisRepor
 
 export function DiagnosisReportScreen({ backToHistory = false }: DiagnosisReportScreenProps = {}) {
   const { width } = useWindowDimensions();
+  const [isPreparingPdf, setIsPreparingPdf] = useState(false);
   const report = getDiagnosisReport();
   const backRoute = backToHistory ? '/history' : '/dashboard';
 
@@ -138,9 +332,26 @@ export function DiagnosisReportScreen({ backToHistory = false }: DiagnosisReport
   const note = report.draft.doctorNote?.trim() || '-';
 
   async function handleDownloadPdf() {
+    if (isPreparingPdf) {
+      return;
+    }
+
+    setIsPreparingPdf(true);
     try {
+      if (!reportImageUri) {
+        throw new Error('Gambar rontgen tidak tersedia untuk dimasukkan ke PDF.');
+      }
+
+      const embeddedImageUri = await imageUriToDataUri(reportImageUri);
+      const html = buildReportHtml(currentReport, embeddedImageUri);
+
+      if (Platform.OS === 'web') {
+        await printReportHtmlOnWeb(html);
+        return;
+      }
+
       const pdf = await Print.printToFileAsync({
-        html: buildReportHtml(currentReport),
+        html,
         base64: true,
       });
       let pdfUri = pdf.uri;
@@ -167,6 +378,8 @@ export function DiagnosisReportScreen({ backToHistory = false }: DiagnosisReport
     } catch (error) {
       const message = error instanceof Error ? error.message : 'PDF gagal dibuat';
       Alert.alert('Download gagal', message);
+    } finally {
+      setIsPreparingPdf(false);
     }
   }
 
@@ -236,9 +449,16 @@ export function DiagnosisReportScreen({ backToHistory = false }: DiagnosisReport
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Download PDF"
+            disabled={isPreparingPdf}
             onPress={handleDownloadPdf}
-            style={({ pressed }) => [styles.downloadButton, pressed && styles.pressed]}>
-            <Text style={styles.downloadText}>Download PDF</Text>
+            style={({ pressed }) => [
+              styles.downloadButton,
+              pressed && !isPreparingPdf && styles.pressed,
+              isPreparingPdf && styles.downloadDisabled,
+            ]}>
+            <Text style={styles.downloadText}>
+              {isPreparingPdf ? 'Menyiapkan PDF...' : 'Download PDF'}
+            </Text>
             <PdfIcon />
           </Pressable>
         </LinearGradient>
@@ -545,6 +765,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 18,
+  },
+  downloadDisabled: {
+    opacity: 0.65,
   },
   downloadText: {
     color: '#FFFFFF',
