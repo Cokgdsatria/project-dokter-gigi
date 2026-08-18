@@ -188,10 +188,6 @@ export function SignUpScreen() {
                   disabled={isSubmitting}
                   onPress={handleSignUp}
                 />
-                <Text style={styles.registerWithText}>Register Dengan</Text>
-                <Pressable style={({ pressed }) => [styles.googleButton, pressed && styles.pressed]}>
-                  <Text style={styles.googleText}>G</Text>
-                </Pressable>
               </View>
             </View>
           </ScrollView>
@@ -290,28 +286,6 @@ const styles = StyleSheet.create({
     marginTop: 72,
     alignItems: 'stretch',
     gap: 22,
-  },
-  registerWithText: {
-    color: '#9B9B9B',
-    fontSize: 24,
-    fontWeight: '400',
-    textAlign: 'center',
-  },
-  googleButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: appColors.white,
-    borderWidth: 1,
-    borderColor: '#E2E2E2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-  },
-  googleText: {
-    color: '#4285F4',
-    fontSize: 26,
-    fontWeight: '800',
   },
   pressed: {
     opacity: 0.78,
