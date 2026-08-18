@@ -131,14 +131,23 @@ export function InitialDiagnosisScreen() {
     const nextPatientName = patientName.trim();
     const nextPatientAge = patientAge.trim();
 
-    if (!nextHomebaseName || !nextHomebaseAddress || !nextPatientMedicalId || !nextPatientName) {
-      Alert.alert('Data belum lengkap', 'Homebase, ID pasien, dan Nama pasien wajib diisi.');
+    if (
+      !nextHomebaseName ||
+      !nextHomebaseAddress ||
+      !nextPatientMedicalId ||
+      !nextPatientName ||
+      !nextPatientAge
+    ) {
+      Alert.alert(
+        'Data belum lengkap',
+        'Homebase, ID pasien, nama pasien, usia, dan jenis kelamin wajib diisi.'
+      );
       return;
     }
 
-    const parsedPatientAge = nextPatientAge ? Number(nextPatientAge) : undefined;
-    if (parsedPatientAge !== undefined && (!Number.isInteger(parsedPatientAge) || parsedPatientAge <= 0)) {
-      Alert.alert('Umur tidak valid', 'Umur pasien harus berupa angka lebih dari 0.');
+    const parsedPatientAge = Number(nextPatientAge);
+    if (!Number.isInteger(parsedPatientAge) || parsedPatientAge <= 0) {
+      Alert.alert('Usia tidak valid', 'Usia pasien harus berupa angka lebih dari 0.');
       return;
     }
 
@@ -262,22 +271,24 @@ export function InitialDiagnosisScreen() {
               required
             />
             <DiagnosisTextField
-            label="Umur"
-            value={patientAge}
-            onChangeText={setPatientAge}
-            keyboardType="numeric"
-          />
-          <DiagnosisSelectField
-            label="Jenis Kelamin"
-            value={patientGender}
-            options={GENDER_OPTIONS}
-            isOpen={isGenderOpen}
-            onToggle={() => setIsGenderOpen((value) => !value)}
-            onSelect={(value) => {
-              setPatientGender(value as PatientGender);
-              setIsGenderOpen(false);
-            }}
-          />
+              label="Usia"
+              value={patientAge}
+              onChangeText={setPatientAge}
+              keyboardType="numeric"
+              required
+            />
+            <DiagnosisSelectField
+              label="Jenis Kelamin"
+              value={patientGender}
+              options={GENDER_OPTIONS}
+              isOpen={isGenderOpen}
+              onToggle={() => setIsGenderOpen((value) => !value)}
+              onSelect={(value) => {
+                setPatientGender(value as PatientGender);
+                setIsGenderOpen(false);
+              }}
+              required
+            />
           </View>
 
           <View style={styles.footer}>

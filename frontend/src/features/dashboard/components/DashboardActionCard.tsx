@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     height: 21,
     borderRadius: 11,
     borderWidth: 3,
-    borderColor: '#31AFCB',
+    borderColor: appColors.aquaStrong,
   },
   personBody: {
     position: 'absolute',
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderTopWidth: 3,
     borderRightWidth: 3,
-    borderColor: '#31AFCB',
+    borderColor: appColors.aquaStrong,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
   },
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     borderWidth: 3,
-    borderColor: '#31AFCB',
+    borderColor: appColors.aquaStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderLeftWidth: 3,
     borderBottomWidth: 3,
-    borderColor: '#31AFCB',
+    borderColor: appColors.aquaStrong,
     transform: [{ rotate: '-35deg' }],
   },
   magnifierHandle: {
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     width: 14,
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#31AFCB',
+    backgroundColor: appColors.aquaStrong,
     transform: [{ rotate: '45deg' }],
   },
   historyIcon: {
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 21,
     borderWidth: 3,
-    borderColor: '#31AFCB',
+    borderColor: appColors.aquaStrong,
     borderLeftColor: 'transparent',
   },
   historyArrow: {
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     height: 13,
     borderLeftWidth: 3,
     borderTopWidth: 3,
-    borderColor: '#31AFCB',
+    borderColor: appColors.aquaStrong,
   },
   clockHandVertical: {
     position: 'absolute',
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     width: 3,
     height: 14,
     borderRadius: 2,
-    backgroundColor: '#31AFCB',
+    backgroundColor: appColors.aquaStrong,
   },
   clockHandHorizontal: {
     position: 'absolute',
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#31AFCB',
+    backgroundColor: appColors.aquaStrong,
     transform: [{ rotate: '35deg' }],
   },
 });

@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getDiagnosisReport } from '../state/diagnosisReport';
 import { AppButton } from '../../../shared/components/AppButton';
+import { APP_NAME, RESULT_GUIDANCE } from '../../../shared/brand';
 import { appColors } from '../../../shared/theme/colors';
 import Svg, { Polygon } from 'react-native-svg';
 import type { DiagnosisPrediction } from '../api/diagnosisApi';
@@ -64,8 +65,8 @@ function buildReportHtml(report: NonNullable<ReturnType<typeof getDiagnosisRepor
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>
           body { font-family: Arial, sans-serif; color: #111; padding: 32px; }
-          .brand { text-align: center; color: #269FBD; font-size: 20px; font-weight: 700; margin-bottom: 22px; }
-          .line { border-top: 2px solid #247FBE; margin: 0 0 8px; }
+          .brand { text-align: center; color: #3D2A73; font-size: 24px; font-weight: 800; margin-bottom: 22px; }
+          .line { border-top: 2px solid #6D4CC3; margin: 0 0 8px; }
           .meta { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 42px; }
           .info { font-size: 12px; line-height: 1.45; margin-left: 8px; }
           .image-wrap { text-align: center; margin: 36px 0 8px; }
@@ -73,6 +74,7 @@ function buildReportHtml(report: NonNullable<ReturnType<typeof getDiagnosisRepor
           .image-number { text-align: center; font-size: 12px; margin-bottom: 14px; }
           .result-title { text-align: center; font-family: Georgia, serif; font-size: 25px; margin: 0; }
           .result { text-align: center; font-family: Georgia, serif; font-size: 32px; font-weight: 700; margin: 6px 0 34px; }
+          .guidance { padding: 14px 16px; background: #F7F3FF; border-left: 4px solid #8B5CF6; font-size: 12px; line-height: 1.5; margin: 0 8px 28px; }
           .note-title { font-size: 12px; font-weight: 700; margin: 0 0 14px 8px; }
           .note { font-size: 12px; line-height: 1.45; margin: 0 8px; }
           .sign-date { text-align: right; margin-top: 56px; font-size: 12px; font-weight: 700; }
@@ -80,7 +82,7 @@ function buildReportHtml(report: NonNullable<ReturnType<typeof getDiagnosisRepor
         </style>
       </head>
       <body>
-        <div class="brand">CekGigi</div>
+        <div class="brand">${APP_NAME}</div>
         <div class="line"></div>
         <div class="meta">
           <span>Nomor : ${escapeHtml(report.resultNumber)}</span>
@@ -98,6 +100,7 @@ function buildReportHtml(report: NonNullable<ReturnType<typeof getDiagnosisRepor
         <div class="image-number">No. ${escapeHtml(report.resultNumber)}</div>
         <p class="result-title">Hasil :</p>
         <p class="result">${escapeHtml(resultLabel)}</p>
+        <p class="guidance">${escapeHtml(RESULT_GUIDANCE)}</p>
         <p class="note-title">Catatan Diagnosa Dokter:</p>
         <p class="note">${escapeHtml(note)}</p>
         <p class="sign-date">Jakarta, ${escapeHtml(dateLabel)}</p>
@@ -144,7 +147,7 @@ export function DiagnosisReportScreen({ backToHistory = false }: DiagnosisReport
 
       if (pdf.base64 && FileSystem.cacheDirectory) {
         const safeResultNumber = currentReport.resultNumber.replace(/[^a-zA-Z0-9_-]/g, '-');
-        pdfUri = `${FileSystem.cacheDirectory}CekGigi-${safeResultNumber}.pdf`;
+        pdfUri = `${FileSystem.cacheDirectory}RADIA-${safeResultNumber}.pdf`;
         await FileSystem.writeAsStringAsync(pdfUri, pdf.base64, {
           encoding: FileSystem.EncodingType.Base64,
         });
@@ -191,6 +194,7 @@ export function DiagnosisReportScreen({ backToHistory = false }: DiagnosisReport
 
         <View style={[styles.reportPaper, { width: reportWidth }]}>
           <Image source={logo} resizeMode="contain" style={styles.paperLogo} />
+          <Text style={styles.paperBrand}>{APP_NAME}</Text>
           <View style={styles.paperLine} />
           <View style={styles.paperMeta}>
             <Text style={styles.paperSmall}>Nomor : {currentReport.resultNumber}</Text>
@@ -215,6 +219,7 @@ export function DiagnosisReportScreen({ backToHistory = false }: DiagnosisReport
           <Text style={styles.imageNumber}>No. {currentReport.resultNumber}</Text>
           <Text style={styles.paperResultTitle}>Hasil :</Text>
           <Text style={styles.paperResult}>{resultLabel}</Text>
+          <Text style={styles.resultGuidance}>{RESULT_GUIDANCE}</Text>
 
           <Text style={styles.noteTitle}>Catatan Diagnosa Dokter:</Text>
           <Text style={styles.note}>{note}</Text>
@@ -291,7 +296,7 @@ function SegmentedXrayImage({
             <Polygon
               key={prediction.detectionId ?? `${prediction.class}-${index}`}
               points={pointString}
-              fill="rgba(52, 199, 201, 0.28)"
+              fill="rgba(139, 92, 246, 0.30)"
               stroke={appColors.blue}
               strokeWidth={2}
             />
@@ -379,7 +384,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   reportPaper: {
-    minHeight: 1210,
+    minHeight: 1300,
     marginTop: 6,
     borderWidth: 2,
     borderColor: '#111111',
@@ -391,8 +396,14 @@ const styles = StyleSheet.create({
   },
   paperLogo: {
     alignSelf: 'center',
-    width: 120,
-    height: 44,
+    width: 92,
+    height: 58,
+  },
+  paperBrand: {
+    color: appColors.blueDeep,
+    fontSize: 17,
+    fontWeight: '900',
+    textAlign: 'center',
   },
   paperLine: {
     height: 2,
@@ -429,14 +440,14 @@ const styles = StyleSheet.create({
     minWidth: 220,
     height: 150,
     marginTop: 40,
-    backgroundColor: '#D7EEF1',
+    backgroundColor: '#EFE9FF',
   },
   segmentedImageWrap: {
   alignSelf: 'center',
   width: 260,
   height: 150,
   marginTop: 40,
-  backgroundColor: '#D7EEF1',
+  backgroundColor: '#EFE9FF',
   overflow: 'hidden',
   },
   segmentedImage: {
@@ -474,6 +485,18 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontFamily: 'serif',
     fontWeight: '800',
+  },
+  resultGuidance: {
+    marginTop: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: appColors.aquaStrong,
+    backgroundColor: appColors.aquaLight,
+    color: '#312A3F',
+    fontSize: 11,
+    fontFamily: 'serif',
+    lineHeight: 17,
   },
   noteTitle: {
     marginTop: 34,

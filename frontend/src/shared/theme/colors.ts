@@ -1,9 +1,9 @@
 ﻿export const appColors = {
   white: '#FFFFFF',
-  aquaLight: '#EFFFFE',
-  aqua: '#9BECEA',
-  aquaStrong: '#34C7C9',
-  blue: '#247FBE',
-  blueDeep: '#176F82',
-  outline: '#22A6CD',
+  aquaLight: '#F7F3FF',
+  aqua: '#E7DCFF',
+  aquaStrong: '#8B5CF6',
+  blue: '#6D4CC3',
+  blueDeep: '#3D2A73',
+  outline: '#8B5CF6',
 };

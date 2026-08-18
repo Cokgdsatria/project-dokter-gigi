@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     color: appColors.white,
   },
   secondaryLabel: {
-    color: '#2398C9',
+    color: appColors.blue,
   },
 });
 

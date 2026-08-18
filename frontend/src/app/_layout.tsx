@@ -42,12 +42,12 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Head>
-        <title>CekGigi</title>
+        <title>RADIA - Radiograf Analisis Diagnostik</title>
         <meta
           name="description"
-          content="Aplikasi pemeriksaan dan riwayat diagnosis rontgen gigi."
+          content="RADIA membantu analisis diagnostik lesi periapikal melalui radiograf dental."
         />
-        <meta name="theme-color" content="#0B4778" />
+        <meta name="theme-color" content="#6D4CC3" />
       </Head>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={!authState.authenticated}>

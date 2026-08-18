@@ -1,9 +1,10 @@
 ﻿import { router } from 'expo-router';
-import { Image, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DashboardActionCard } from '../components/DashboardActionCard';
 import { clearDiagnosisDraft } from '../../diagnosis/state/diagnosisDraft';
+import { APP_LONG_NAME, APP_NAME } from '../../../shared/brand';
 import { appColors } from '../../../shared/theme/colors';
 
 const logo = require('../../../../assets/logo/New Logo Cek Gigi.png');
@@ -23,20 +24,22 @@ export function DashboardScreen() {
         <View style={styles.header}>
           <View style={styles.logoWrap}>
             <Image source={logo} resizeMode="contain" style={styles.logo} />
+            <Text style={styles.brandName}>{APP_NAME}</Text>
+            <Text style={styles.brandLongName}>{APP_LONG_NAME}</Text>
           </View>
         </View>
 
         <View style={styles.cardsRow}>
           <DashboardActionCard
             title="Check-up"
-            description="Analisis Hasil Ronsen"
+            description="Analisis radiograf dental"
             actionLabel="Mulai Analisis"
             icon="checkup"
             onPress={handleStartDiagnosis}
           />
           <DashboardActionCard
             title="Riwayat Check-up"
-            description="Lihat Riwayat Hasil Ronsen"
+            description="Lihat hasil analisis radiograf"
             actionLabel="Lihat Riwayat"
             icon="history"
             onPress={() => router.push('/history')}
@@ -106,23 +109,36 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingTop: 86,
+    paddingTop: 48,
   },
   header: {
-    minHeight: 82,
+    minHeight: 150,
     justifyContent: 'center',
   },
   logoWrap: {
     alignItems: 'center',
   },
   logo: {
-    width: 210,
-    height: 92,
+    width: 118,
+    height: 98,
+  },
+  brandName: {
+    color: appColors.blueDeep,
+    fontSize: 30,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  brandLongName: {
+    color: '#5F5672',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 2,
   },
   cardsRow: {
     flexDirection: 'row',
     gap: 38,
-    marginTop: 42,
+    marginTop: 32,
   },
   bottomNav: {
     height: 80,
