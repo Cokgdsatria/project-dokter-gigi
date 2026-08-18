@@ -1,4 +1,5 @@
 ﻿import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import Head from 'expo-router/head';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View, useColorScheme } from 'react-native';
 
@@ -39,26 +40,34 @@ export default function RootLayout() {
   }
 
   return (
-  <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!authState.authenticated}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="signup" />
-      </Stack.Protected>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <Head>
+        <title>CekGigi</title>
+        <meta
+          name="description"
+          content="Aplikasi pemeriksaan dan riwayat diagnosis rontgen gigi."
+        />
+        <meta name="theme-color" content="#0B4778" />
+      </Head>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Protected guard={!authState.authenticated}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="login" />
+          <Stack.Screen name="signup" />
+        </Stack.Protected>
 
-      <Stack.Protected guard={authState.authenticated}>
-        <Stack.Screen name="dashboard" />
-        <Stack.Screen name="profile" />
-        <Stack.Screen name="history" />
-        <Stack.Screen name="history/[id]" />
-        <Stack.Screen name="diagnosis-initial" />
-        <Stack.Screen name="diagnosis-detail" />
-        <Stack.Screen name="diagnosis-loading" />
-        <Stack.Screen name="diagnosis-report" />
-      </Stack.Protected>
-    </Stack>
-  </ThemeProvider>
+        <Stack.Protected guard={authState.authenticated}>
+          <Stack.Screen name="dashboard" />
+          <Stack.Screen name="profile" />
+          <Stack.Screen name="history" />
+          <Stack.Screen name="history/[id]" />
+          <Stack.Screen name="diagnosis-initial" />
+          <Stack.Screen name="diagnosis-detail" />
+          <Stack.Screen name="diagnosis-loading" />
+          <Stack.Screen name="diagnosis-report" />
+        </Stack.Protected>
+      </Stack>
+    </ThemeProvider>
   );
 }
 

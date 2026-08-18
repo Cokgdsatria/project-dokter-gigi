@@ -22,8 +22,8 @@ import { AuthTextField } from '../../../shared/components/AuthTextField';
 import { appColors } from '../../../shared/theme/colors';
 import { toFriendlyError } from '../../../shared/api/errorMessages'; 
 
-const logo = require('../../../../assets/logo/logo_CekGigi.png');
-const LOGO_ASPECT_RATIO = 102 / 106;
+const logo = require('../../../../assets/logo/New Logo Cek Gigi.png');
+const LOGO_ASPECT_RATIO = 433 / 355;
 
 export function LoginScreen() {
   const { width, height } = useWindowDimensions();

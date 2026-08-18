@@ -23,7 +23,7 @@ import { getDiagnosisDraft, updateDiagnosisDraft } from '../state/diagnosisDraft
 import { AppButton } from '../../../shared/components/AppButton';
 import { appColors } from '../../../shared/theme/colors';
 
-const logo = require('../../../../assets/logo/logo_CekGigi.png');
+const logo = require('../../../../assets/logo/New Logo Cek Gigi.png');
 
 export function DiagnosisDetailScreen() {
   const { width, height } = useWindowDimensions();

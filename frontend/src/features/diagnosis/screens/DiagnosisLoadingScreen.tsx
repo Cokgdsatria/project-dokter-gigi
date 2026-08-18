@@ -19,7 +19,7 @@ import { appColors } from '../../../shared/theme/colors';
 import { toFriendlyError } from '../../../shared/api/errorMessages';
 
 
-const logo = require('../../../../assets/logo/logo_CekGigi.png');
+const logo = require('../../../../assets/logo/New Logo Cek Gigi.png');
 
 export function DiagnosisLoadingScreen() {
   const { height } = useWindowDimensions();

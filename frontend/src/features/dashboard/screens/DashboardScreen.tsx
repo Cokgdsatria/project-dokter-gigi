@@ -6,7 +6,7 @@ import { DashboardActionCard } from '../components/DashboardActionCard';
 import { clearDiagnosisDraft } from '../../diagnosis/state/diagnosisDraft';
 import { appColors } from '../../../shared/theme/colors';
 
-const logo = require('../../../../assets/logo/logo_CekGigi.png');
+const logo = require('../../../../assets/logo/New Logo Cek Gigi.png');
 
 export function DashboardScreen() {
   const { width } = useWindowDimensions();

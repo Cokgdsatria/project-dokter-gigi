@@ -7,15 +7,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppButton } from '../../../shared/components/AppButton';
 import { appColors } from '../../../shared/theme/colors';
 
-const logo = require('../../../../assets/logo/logo_CekGigi.png');
-const LOGO_ASPECT_RATIO = 102 / 106;
+const logo = require('../../../../assets/logo/New Logo Cek Gigi.png');
+const LOGO_ASPECT_RATIO = 433 / 355;
 
 export function LandingScreen() {
   const { width, height } = useWindowDimensions();
   const horizontalPadding = Math.min(70, Math.max(26, width * 0.09));
-  const logoWidth = Math.min(210, Math.max(118, width * 0.28));
+  const logoWidth = Math.min(320, Math.max(210, width * 0.48));
   const logoHeight = logoWidth / LOGO_ASPECT_RATIO;
-  const brandTop = height * 0.43;
+  const brandTop = Math.max(150, height * 0.34);
   const buttonBottom = Math.min(78, Math.max(42, height * 0.045));
 
   return (

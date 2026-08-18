@@ -10,7 +10,7 @@ import { getAuthSession } from '../../auth/api/authSession';
 import { toFriendlyError } from '../../../shared/api/errorMessages';
 import { appColors } from '../../../shared/theme/colors';
 
-const logo = require('../../../../assets/logo/logo_CekGigi.png');
+const logo = require('../../../../assets/logo/New Logo Cek Gigi.png');
 
 export function HistoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
