@@ -26,7 +26,7 @@ import { AppButton } from '../../../shared/components/AppButton';
 import { appColors } from '../../../shared/theme/colors';
 import { searchPatients, type PatientOption } from '../api/patientApi';
 
-const logo = require('../../../../assets/logo/logo_CekGigi.png');
+const logo = require('../../../../assets/logo/New Logo Cek Gigi.png');
 const HOMEBASE_OPTIONS = ['Rumah Sakit', 'Klinik', 'Lainnya'];
 const GENDER_OPTIONS: PatientGender[] = ['Laki-laki', 'Perempuan'];
 

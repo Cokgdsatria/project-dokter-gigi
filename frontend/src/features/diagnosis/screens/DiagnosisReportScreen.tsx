@@ -17,7 +17,7 @@ type DiagnosisReportScreenProps = {
   backToHistory?: boolean;
 };
 
-const logo = require('../../../../assets/logo/logo_CekGigi.png');
+const logo = require('../../../../assets/logo/New Logo Cek Gigi.png');
 
 function formatDate(value: string) {
   const date = new Date(value);

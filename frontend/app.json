@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Project Dokter Gigi",
+    "name": "CekGigi",
     "slug": "project-dokter-gigi",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -22,8 +22,8 @@
       "package": "com.satriawidnyana.projectdoktergigi"
     },
     "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "single",
+      "favicon": "./assets/logo/New Logo Cek Gigi.png"
     },
     "plugins": [
       "expo-router",
