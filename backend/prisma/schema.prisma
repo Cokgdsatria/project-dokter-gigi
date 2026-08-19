@@ -93,6 +93,12 @@ model ScanHistory {
   predictions Json?
   errorMessage String?
 
+  aiModelId String?
+  aiConfidenceThreshold Float?
+  aiOverlapThreshold Float?
+  aiResponseMaskFormat String?
+  inferenceTraceId String?
+
   resultNumber String? @unique
   reportPdfUrl String?
 
@@ -117,6 +123,7 @@ model ScanHistory {
   @@index([patientId, createdAt])
   @@index([homebaseId, createdAt])
   @@index([status, updatedAt])
+  @@index([aiModelId, createdAt])
 }
 
 // 4. Model Homebase Data RS

@@ -71,6 +71,11 @@ async def process_scan(scan) -> None:
                 "resultConfidence": confidence,
                 "errorMessage": error_message,
                 "processedAt": datetime.now(timezone.utc),
+                "aiModelId": settings.ROBOFLOW_MODEL_ID,
+                "aiConfidenceThreshold": settings.ROBOFLOW_CONFIDENCE_THRESHOLD,
+                "aiOverlapThreshold": settings.ROBOFLOW_OVERLAP_THRESHOLD,
+                "aiResponseMaskFormat": settings.ROBOFLOW_RESPONSE_MASK_FORMAT,
+                "inferenceTraceId": trace_id,
             },
         )
         logger.info(

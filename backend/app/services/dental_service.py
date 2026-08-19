@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import anyio
-from inference_sdk import InferenceHTTPClient
+from inference_sdk import InferenceConfiguration, InferenceHTTPClient
 from PIL import Image
 
 from app.core.config import settings
@@ -17,6 +17,13 @@ logger = logging.getLogger(__name__)
 ROBOFLOW_CLIENT = InferenceHTTPClient(
     api_url=settings.ROBOFLOW_API_URL,
     api_key=settings.ROBOFLOW_API_KEY,
+).configure(
+    InferenceConfiguration(
+        confidence_threshold=settings.ROBOFLOW_CONFIDENCE_THRESHOLD,
+        iou_threshold=settings.ROBOFLOW_OVERLAP_THRESHOLD,
+        response_mask_format=settings.ROBOFLOW_RESPONSE_MASK_FORMAT,
+        client_downsizing_disabled=True,
+    )
 )
 
 
