@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import uuid
 
 from fastapi import FastAPI, Request
@@ -11,6 +12,8 @@ from app.core.config import settings, validate_runtime_settings
 from app.core.rate_limit import InMemoryRateLimiter
 from app.core.telemetry import dbg_emit
 from app.database.db import connect_db, disconnect_db
+
+logger = logging.getLogger(__name__)
 
 validate_runtime_settings()
 
@@ -147,6 +150,12 @@ async def readiness_check():
 @app.on_event("startup")
 async def startup():
     trace_id = str(uuid.uuid4())
+    logger.info(
+        "runtime.configuration environment=%s roboflow_model_id=%s diagnosis_async=%s",
+        settings.ENVIRONMENT,
+        settings.ROBOFLOW_MODEL_ID,
+        settings.DIAGNOSIS_ASYNC_ENABLED,
+    )
     dbg_emit(hypothesis_id="A", location="main.py", msg="startup.begin", data={}, trace_id=trace_id)
 
     if not settings.CONNECT_DB_ON_STARTUP:
