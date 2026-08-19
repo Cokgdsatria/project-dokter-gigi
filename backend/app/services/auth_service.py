@@ -27,14 +27,22 @@ def _as_utc(value: datetime) -> datetime:
 def _new_refresh_token_values(
     user_id: str,
     family_id: Optional[str] = None,
+    expires_at: Optional[datetime] = None,
 ):
+    now = datetime.now(timezone.utc)
+    if expires_at is None:
+        refresh_expiry = now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        session_expiry = now + timedelta(
+            hours=settings.SESSION_ABSOLUTE_EXPIRE_HOURS
+        )
+        expires_at = min(refresh_expiry, session_expiry)
+
     raw_token = generate_refresh_token()
     return raw_token, {
         "tokenHash": hash_refresh_token(raw_token),
         "familyId": family_id or str(uuid.uuid4()),
         "userId": user_id,
-        "expiresAt": datetime.now(timezone.utc)
-        + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        "expiresAt": _as_utc(expires_at),
     }
 
 
@@ -75,6 +83,7 @@ async def rotate_refresh_token(raw_token: str) -> RefreshTokenResult:
             next_raw_token, next_values = _new_refresh_token_values(
                 stored.userId,
                 family_id=stored.familyId,
+                expires_at=stored.expiresAt,
             )
             await transaction.refreshtoken.update(
                 where={"id": stored.id},

@@ -71,6 +71,14 @@ class ProductionConfigTests(TestCase):
             with self.assertRaisesRegex(RuntimeError, "ROBOFLOW_MODEL_ID"):
                 validate_runtime_settings()
 
+    def test_rejects_session_lifetime_longer_than_refresh_token(self):
+        with (
+            patch.object(settings, "REFRESH_TOKEN_EXPIRE_DAYS", 1),
+            patch.object(settings, "SESSION_ABSOLUTE_EXPIRE_HOURS", 25),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "SESSION_ABSOLUTE_EXPIRE_HOURS"):
+                validate_runtime_settings()
+
 
 class FakeTransactionContext:
     def __init__(self, transaction):
@@ -94,6 +102,31 @@ class FakeDatabase:
 
 
 class RefreshRotationTests(IsolatedAsyncioTestCase):
+    async def test_rotation_preserves_absolute_session_expiry(self):
+        absolute_expiry = datetime.now(timezone.utc) + timedelta(hours=4)
+        stored = SimpleNamespace(
+            id="token-1",
+            familyId="family-1",
+            userId="doctor-1",
+            user=SimpleNamespace(id="doctor-1"),
+            revokedAt=None,
+            expiresAt=absolute_expiry,
+        )
+        token_client = SimpleNamespace(
+            find_unique=AsyncMock(return_value=stored),
+            update_many=AsyncMock(return_value=0),
+            update=AsyncMock(),
+            create=AsyncMock(),
+        )
+        transaction = SimpleNamespace(refreshtoken=token_client)
+        context = FakeTransactionContext(transaction)
+
+        with patch("app.services.auth_service.db", FakeDatabase(context)):
+            await rotate_refresh_token("valid-refresh-token")
+
+        created_values = token_client.create.await_args.kwargs["data"]
+        self.assertEqual(created_values["expiresAt"], absolute_expiry)
+
     async def test_reuse_revocation_commits_before_error_is_raised(self):
         stored = SimpleNamespace(
             id="token-1",

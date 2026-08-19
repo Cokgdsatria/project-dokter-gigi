@@ -57,6 +57,7 @@ export function ProfileScreen() {
                 refreshToken: session.refreshToken!,
                 tokenType: session.tokenType ?? 'bearer',
                 user,
+                sessionExpiresAt: session.sessionExpiresAt!,
             });
              Alert.alert('Berhasil', 'Profile berhasil diperbarui.');
         } catch (error) {
