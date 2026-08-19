@@ -4,14 +4,26 @@ import { Platform } from 'react-native';
 import { API_BASE_URL } from '../../../shared/api/config';
 import type { AuthUser } from './authApi';
 
-const SESSION_KEY = 'cekgigi.auth-session.v2';
-const LEGACY_SESSION_KEY = 'cekgigi.auth-session.v1';
+const SESSION_KEY = 'radia.auth-session.v3';
+const LEGACY_SESSION_KEYS = ['cekgigi.auth-session.v2', 'cekgigi.auth-session.v1'];
+const DEFAULT_SESSION_TIMEOUT_MINUTES = 8 * 60;
+const MAX_TIMER_DELAY_MS = 2_147_483_647;
+
+function getSessionTimeoutMs() {
+  const configuredMinutes = Number(process.env.EXPO_PUBLIC_SESSION_TIMEOUT_MINUTES);
+  const timeoutMinutes =
+    Number.isFinite(configuredMinutes) && configuredMinutes > 0
+      ? configuredMinutes
+      : DEFAULT_SESSION_TIMEOUT_MINUTES;
+  return timeoutMinutes * 60 * 1000;
+}
 
 export type AuthSession = {
   accessToken: string | null;
   refreshToken: string | null;
   tokenType: string | null;
   user: AuthUser | null;
+  sessionExpiresAt: number | null;
 };
 
 export type AuthTokenPayload = {
@@ -27,14 +39,41 @@ const session: AuthSession = {
   refreshToken: null,
   tokenType: null,
   user: null,
+  sessionExpiresAt: null,
 };
 
 let hydrated = false;
 let refreshPromise: Promise<string> | null = null;
+let expiryTimer: ReturnType<typeof setTimeout> | null = null;
 const listeners = new Set<() => void>();
 
 function notify() {
   listeners.forEach((listener) => listener());
+}
+
+function scheduleSessionExpiry(expiresAt: number | null) {
+  if (expiryTimer) {
+    clearTimeout(expiryTimer);
+    expiryTimer = null;
+  }
+
+  if (!expiresAt) {
+    return;
+  }
+
+  const remainingMs = expiresAt - Date.now();
+  if (remainingMs <= 0) {
+    void clearAuthSession();
+    return;
+  }
+
+  expiryTimer = setTimeout(() => {
+    if (expiresAt <= Date.now()) {
+      void clearAuthSession();
+      return;
+    }
+    scheduleSessionExpiry(expiresAt);
+  }, Math.min(remainingMs, MAX_TIMER_DELAY_MS));
 }
 
 function replaceSession(next: AuthSession) {
@@ -42,6 +81,8 @@ function replaceSession(next: AuthSession) {
   session.refreshToken = next.refreshToken;
   session.tokenType = next.tokenType;
   session.user = next.user;
+  session.sessionExpiresAt = next.sessionExpiresAt;
+  scheduleSessionExpiry(next.sessionExpiresAt);
   notify();
 }
 
@@ -68,7 +109,10 @@ async function readPersistedSession(): Promise<AuthSession | null> {
   if (
     typeof parsed.accessToken !== 'string' ||
     typeof parsed.refreshToken !== 'string' ||
-    typeof parsed.tokenType !== 'string'
+    typeof parsed.tokenType !== 'string' ||
+    typeof parsed.sessionExpiresAt !== 'number' ||
+    !Number.isFinite(parsed.sessionExpiresAt) ||
+    parsed.sessionExpiresAt <= Date.now()
   ) {
     return null;
   }
@@ -78,6 +122,7 @@ async function readPersistedSession(): Promise<AuthSession | null> {
     refreshToken: parsed.refreshToken,
     tokenType: parsed.tokenType,
     user: parsed.user ?? null,
+    sessionExpiresAt: parsed.sessionExpiresAt,
   };
 }
 
@@ -102,12 +147,14 @@ export async function setAuthSession(next: {
   refreshToken: string;
   tokenType: string;
   user?: AuthUser | null;
+  sessionExpiresAt?: number;
 }) {
   const normalized: AuthSession = {
     accessToken: next.accessToken,
     refreshToken: next.refreshToken,
     tokenType: next.tokenType,
     user: next.user ?? null,
+    sessionExpiresAt: next.sessionExpiresAt ?? Date.now() + getSessionTimeoutMs(),
   };
   await persistSession(normalized);
   replaceSession(normalized);
@@ -116,10 +163,10 @@ export async function setAuthSession(next: {
 export async function clearAuthSession() {
   if (Platform.OS === 'web') {
     globalThis.localStorage?.removeItem(SESSION_KEY);
-    globalThis.localStorage?.removeItem(LEGACY_SESSION_KEY);
+    LEGACY_SESSION_KEYS.forEach((key) => globalThis.localStorage?.removeItem(key));
   } else {
     await SecureStore.deleteItemAsync(SESSION_KEY);
-    await SecureStore.deleteItemAsync(LEGACY_SESSION_KEY);
+    await Promise.all(LEGACY_SESSION_KEYS.map((key) => SecureStore.deleteItemAsync(key)));
   }
 
   replaceSession({
@@ -127,22 +174,42 @@ export async function clearAuthSession() {
     refreshToken: null,
     tokenType: null,
     user: null,
+    sessionExpiresAt: null,
   });
 }
 
-async function performRefresh(): Promise<string> {
-  if (!session.refreshToken) {
-    throw new Error('Sesi login tidak ditemukan. Silakan login ulang.');
+async function requireActiveSession(): Promise<string> {
+  if (
+    !session.accessToken ||
+    !session.refreshToken ||
+    !session.sessionExpiresAt ||
+    session.sessionExpiresAt <= Date.now()
+  ) {
+    await clearAuthSession();
+    throw new Error('Sesi sudah berakhir. Silakan login ulang.');
   }
+
+  return session.accessToken;
+}
+
+async function performRefresh(): Promise<string> {
+  await requireActiveSession();
+  const refreshToken = session.refreshToken!;
+  const sessionExpiresAt = session.sessionExpiresAt!;
 
   const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh_token: session.refreshToken }),
+    body: JSON.stringify({ refresh_token: refreshToken }),
   });
   const data = (await response.json().catch(() => null)) as AuthTokenPayload | null;
 
   if (!response.ok || !data?.access_token || !data.refresh_token) {
+    await clearAuthSession();
+    throw new Error('Sesi sudah berakhir. Silakan login ulang.');
+  }
+
+  if (sessionExpiresAt <= Date.now()) {
     await clearAuthSession();
     throw new Error('Sesi sudah berakhir. Silakan login ulang.');
   }
@@ -152,6 +219,7 @@ async function performRefresh(): Promise<string> {
     refreshToken: data.refresh_token,
     tokenType: data.token_type,
     user: data.user ?? session.user,
+    sessionExpiresAt,
   });
   return data.access_token;
 }
@@ -169,9 +237,7 @@ export async function authenticatedFetch(
   input: RequestInfo | URL,
   init: RequestInit = {},
 ): Promise<Response> {
-  if (!session.accessToken) {
-    throw new Error('Sesi login tidak ditemukan. Silakan login ulang.');
-  }
+  const currentAccessToken = await requireActiveSession();
 
   const execute = (accessToken: string) => {
     const headers = new Headers(init.headers);
@@ -179,7 +245,7 @@ export async function authenticatedFetch(
     return fetch(input, { ...init, headers });
   };
 
-  let response = await execute(session.accessToken);
+  let response = await execute(currentAccessToken);
   if (response.status === 401 && session.refreshToken) {
     const accessToken = await refreshAuthSession();
     response = await execute(accessToken);

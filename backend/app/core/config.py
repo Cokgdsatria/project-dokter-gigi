@@ -21,6 +21,9 @@ class Settings:
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
     REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
+    SESSION_ABSOLUTE_EXPIRE_HOURS: int = int(
+        os.getenv("SESSION_ABSOLUTE_EXPIRE_HOURS", "8")
+    )
 
     ROBOFLOW_API_KEY: str = os.getenv("ROBOFLOW_API_KEY", "")
     ROBOFLOW_API_URL: str = os.getenv("ROBOFLOW_API_URL", "https://serverless.roboflow.com")
@@ -126,6 +129,15 @@ def validate_runtime_settings() -> None:
         errors.append("ACCESS_TOKEN_EXPIRE_MINUTES harus lebih dari 0")
     if settings.REFRESH_TOKEN_EXPIRE_DAYS <= 0:
         errors.append("REFRESH_TOKEN_EXPIRE_DAYS harus lebih dari 0")
+    if settings.SESSION_ABSOLUTE_EXPIRE_HOURS <= 0:
+        errors.append("SESSION_ABSOLUTE_EXPIRE_HOURS harus lebih dari 0")
+    if (
+        settings.SESSION_ABSOLUTE_EXPIRE_HOURS
+        > settings.REFRESH_TOKEN_EXPIRE_DAYS * 24
+    ):
+        errors.append(
+            "SESSION_ABSOLUTE_EXPIRE_HOURS tidak boleh melebihi umur refresh token"
+        )
     if settings.ROBOFLOW_RETRY_ATTEMPTS <= 0:
         errors.append("ROBOFLOW_RETRY_ATTEMPTS harus lebih dari 0")
     if settings.DIAGNOSIS_WORKER_POLL_SECONDS <= 0:
