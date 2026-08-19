@@ -3,7 +3,7 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -19,6 +19,52 @@ type DiagnosisReportScreenProps = {
 };
 
 const logo = require('../../../../assets/logo/New Logo Cek Gigi.png');
+const FALLBACK_IMAGE_DIMENSIONS = { width: 640, height: 640 };
+
+type ImageDimensions = {
+  width: number;
+  height: number;
+};
+
+function normalizeImageDimensions(
+  width?: number | null,
+  height?: number | null,
+): ImageDimensions | null {
+  if (!width || !height || width <= 0 || height <= 0) {
+    return null;
+  }
+
+  return { width, height };
+}
+
+function fitImageWithin(
+  source: ImageDimensions,
+  maxWidth: number,
+  maxHeight: number,
+): ImageDimensions {
+  const scale = Math.min(maxWidth / source.width, maxHeight / source.height);
+  return {
+    width: Math.max(1, Math.round(source.width * scale)),
+    height: Math.max(1, Math.round(source.height * scale)),
+  };
+}
+
+function readImageDimensions(uri: string) {
+  return new Promise<ImageDimensions>((resolve, reject) => {
+    Image.getSize(
+      uri,
+      (width, height) => {
+        const dimensions = normalizeImageDimensions(width, height);
+        if (dimensions) {
+          resolve(dimensions);
+          return;
+        }
+        reject(new Error('Dimensi gambar rontgen tidak valid.'));
+      },
+      () => reject(new Error('Dimensi gambar rontgen gagal dibaca.')),
+    );
+  });
+}
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -134,11 +180,9 @@ async function imageUriToDataUri(uri: string) {
 
 function buildPredictionOverlay(
   predictions: DiagnosisPrediction[],
-  imageWidth?: number | null,
-  imageHeight?: number | null,
+  imageDimensions: ImageDimensions,
 ) {
-  const sourceWidth = imageWidth && imageWidth > 0 ? imageWidth : 640;
-  const sourceHeight = imageHeight && imageHeight > 0 ? imageHeight : 640;
+  const { width: sourceWidth, height: sourceHeight } = imageDimensions;
   const polygons = predictions
     .map((prediction) => {
       const points = (prediction.points ?? [])
@@ -147,7 +191,7 @@ function buildPredictionOverlay(
         .join(' ');
 
       return points
-        ? `<polygon points="${points}" fill="rgba(139, 92, 246, 0.30)" stroke="#6D4CC3" stroke-width="2" />`
+        ? `<polygon points="${points}" fill="rgba(139, 92, 246, 0.48)" stroke="#6D4CC3" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" />`
         : '';
     })
     .join('');
@@ -156,7 +200,7 @@ function buildPredictionOverlay(
     return '';
   }
 
-  return `<svg class="segmentation" viewBox="0 0 ${sourceWidth} ${sourceHeight}" preserveAspectRatio="none">${polygons}</svg>`;
+  return `<svg class="segmentation" viewBox="0 0 ${sourceWidth} ${sourceHeight}" preserveAspectRatio="xMidYMid meet">${polygons}</svg>`;
 }
 
 async function printReportHtmlOnWeb(html: string) {
@@ -224,6 +268,7 @@ async function printReportHtmlOnWeb(html: string) {
 function buildReportHtml(
   report: NonNullable<ReturnType<typeof getDiagnosisReport>>,
   embeddedImageUri: string,
+  imageDimensions: ImageDimensions,
 ) {
   const resultLabel = getResultLabel(report.response.data.resultLabel);
   const dateLabel = formatDate(report.createdAt);
@@ -231,18 +276,13 @@ function buildReportHtml(
   const doctorPhone = report.doctor?.phone || '-';
   const doctorPosition = report.doctor?.position || 'Dokter Gigi';
   const note = report.draft.doctorNote?.trim() || '-';
-  const sourceWidth = report.response.data.imageWidth || 640;
-  const sourceHeight = report.response.data.imageHeight || 640;
-  const imageScale = Math.min(310 / sourceWidth, 220 / sourceHeight);
-  const printImageWidth = Math.max(1, Math.round(sourceWidth * imageScale));
-  const printImageHeight = Math.max(1, Math.round(sourceHeight * imageScale));
+  const printImageSize = fitImageWithin(imageDimensions, 310, 260);
   const predictionOverlay = buildPredictionOverlay(
     report.response.data.predictions ?? [],
-    sourceWidth,
-    sourceHeight,
+    imageDimensions,
   );
   const imageTag = `
-    <div class="xray-frame" style="width: ${printImageWidth}px; height: ${printImageHeight}px">
+    <div class="xray-frame" style="width: ${printImageSize.width}px; height: ${printImageSize.height}px">
       <img class="xray" src="${escapeHtml(embeddedImageUri)}" alt="Radiograf dental" />
       ${predictionOverlay}
     </div>`;
@@ -343,7 +383,14 @@ export function DiagnosisReportScreen({ backToHistory = false }: DiagnosisReport
       }
 
       const embeddedImageUri = await imageUriToDataUri(reportImageUri);
-      const html = buildReportHtml(currentReport, embeddedImageUri);
+      const responseImageDimensions = normalizeImageDimensions(
+        currentReport.response.data.imageWidth,
+        currentReport.response.data.imageHeight,
+      );
+      const imageDimensions = await readImageDimensions(embeddedImageUri).catch(
+        () => responseImageDimensions ?? FALLBACK_IMAGE_DIMENSIONS,
+      );
+      const html = buildReportHtml(currentReport, embeddedImageUri, imageDimensions);
 
       if (Platform.OS === 'web') {
         await printReportHtmlOnWeb(html);
@@ -478,10 +525,34 @@ function SegmentedXrayImage({
   imageWidth?: number | null;
   imageHeight?: number | null;
 }) {
-  const displayWidth = 260;
-  const displayHeight = 150;
-  const sourceWidth = imageWidth || 640;
-  const sourceHeight = imageHeight || 640;
+  const responseImageDimensions = useMemo(
+    () => normalizeImageDimensions(imageWidth, imageHeight),
+    [imageHeight, imageWidth],
+  );
+  const [naturalImageDimensions, setNaturalImageDimensions] = useState<ImageDimensions | null>(null);
+
+  useEffect(() => {
+    let isCurrent = true;
+    setNaturalImageDimensions(null);
+
+    if (imageUri) {
+      readImageDimensions(imageUri)
+        .then((dimensions) => {
+          if (isCurrent) {
+            setNaturalImageDimensions(dimensions);
+          }
+        })
+        .catch(() => undefined);
+    }
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [imageUri]);
+
+  const sourceDimensions =
+    naturalImageDimensions ?? responseImageDimensions ?? FALLBACK_IMAGE_DIMENSIONS;
+  const displayDimensions = fitImageWithin(sourceDimensions, 260, 240);
 
   if (!imageUri) {
     return (
@@ -492,7 +563,7 @@ function SegmentedXrayImage({
   }
 
   return (
-    <View style={styles.segmentedImageWrap}>
+    <View style={[styles.segmentedImageWrap, displayDimensions]}>
       <Image
         source={{ uri: imageUri }}
         resizeMode="contain"
@@ -500,12 +571,15 @@ function SegmentedXrayImage({
       />
 
       <Svg 
-        width={displayWidth} 
-        height={displayHeight} 
-        viewBox={`0 0 ${sourceWidth} ${sourceHeight}`}
+        width={displayDimensions.width}
+        height={displayDimensions.height}
+        viewBox={`0 0 ${sourceDimensions.width} ${sourceDimensions.height}`}
+        preserveAspectRatio="xMidYMid meet"
         style={StyleSheet.absoluteFill}>
         {predictions.map((prediction, index) => {
-          const points = prediction.points ?? [];
+          const points = (prediction.points ?? []).filter(
+            (point) => Number.isFinite(point.x) && Number.isFinite(point.y),
+          );
           if (!points.length) {
             return null;
           }
@@ -516,9 +590,11 @@ function SegmentedXrayImage({
             <Polygon
               key={prediction.detectionId ?? `${prediction.class}-${index}`}
               points={pointString}
-              fill="rgba(139, 92, 246, 0.30)"
+              fill="rgba(139, 92, 246, 0.48)"
               stroke={appColors.blue}
               strokeWidth={2}
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
             />
           );
         })}
@@ -663,16 +739,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFE9FF',
   },
   segmentedImageWrap: {
-  alignSelf: 'center',
-  width: 260,
-  height: 150,
-  marginTop: 40,
-  backgroundColor: '#EFE9FF',
-  overflow: 'hidden',
+    alignSelf: 'center',
+    width: 260,
+    height: 240,
+    marginTop: 40,
+    backgroundColor: '#EFE9FF',
+    overflow: 'hidden',
   },
   segmentedImage: {
-  width: '100%',
-  height: '100%',
+    width: '100%',
+    height: '100%',
   },
   missingImageWrap: {
     alignItems: 'center',

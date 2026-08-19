@@ -1,12 +1,13 @@
 import logging
 import os
 import tempfile
+from io import BytesIO
 from pathlib import Path
-from typing import Optional, Dict, Any, Tuple, List
-
+from typing import Any, Dict, List, Optional, Tuple
 
 import anyio
 from inference_sdk import InferenceHTTPClient
+from PIL import Image
 
 from app.core.config import settings
 from app.core.telemetry import dbg_emit
@@ -47,6 +48,7 @@ def _pick_top_prediction(predictions: Dict[str, Any]) -> Optional[Dict[str, Any]
             top_item = item
     return top_item
 
+
 def normalize_predictions(predictions_for_db: Dict[str, Any]) -> List[Dict[str, Any]]:
     predictions = predictions_for_db.get("predictions", [])
     if not isinstance(predictions, list):
@@ -84,6 +86,7 @@ def normalize_predictions(predictions_for_db: Dict[str, Any]) -> List[Dict[str, 
     
     return normalized_predictions
 
+
 def get_prediction_image_size(predictions_for_db: Dict[str, Any]) -> Dict[str, Optional[float]]:
     image_meta = predictions_for_db.get("image")
 
@@ -93,45 +96,18 @@ def get_prediction_image_size(predictions_for_db: Dict[str, Any]) -> Dict[str, O
         if width and height:
             return {"width": width, "height": height}
 
-    predictions = predictions_for_db.get("predictions", [])
-    if not isinstance(predictions, list):
-        return {"width": None, "height": None}
+    return {"width": None, "height": None}
 
-    max_x = 0.0
-    max_y = 0.0
 
-    for item in predictions:
-        if not isinstance(item, dict):
-            continue
+def get_source_image_size(image_bytes: bytes) -> Dict[str, int]:
+    with Image.open(BytesIO(image_bytes)) as image:
+        width, height = image.size
 
-        points = item.get("points", [])
-        if isinstance(points, list):
-            for point in points:
-                if not isinstance(point, dict):
-                    continue
+    if width <= 0 or height <= 0:
+        raise ValueError("Invalid image dimensions")
 
-                x = _safe_float(point.get("x"))
-                y = _safe_float(point.get("y"))
+    return {"width": width, "height": height}
 
-                if x is not None:
-                    max_x = max(max_x, x)
-                if y is not None:
-                    max_y = max(max_y, y)
-
-        x = _safe_float(item.get("x"))
-        y = _safe_float(item.get("y"))
-        width = _safe_float(item.get("width"))
-        height = _safe_float(item.get("height"))
-
-        if x is not None and width is not None:
-            max_x = max(max_x, x + width / 2)
-        if y is not None and height is not None:
-            max_y = max(max_y, y + height / 2)
-
-    return {
-        "width": max_x or None,
-        "height": max_y or None,
-    }
 
 def _infer_sync(image_bytes: bytes, filename: str) -> Any:
     tmp_path: Optional[str] = None
@@ -201,19 +177,18 @@ async def process_inference(
         if not inference_succeeded:
             raise last_error or RuntimeError("Roboflow inference gagal")
 
-        predictions = result if isinstance(result, dict) else {"result": result}
-        if isinstance(predictions, dict):
-            predictions_for_db = predictions
-        else:
-            predictions_for_db = {"result": predictions}
+        predictions_for_db = dict(result) if isinstance(result, dict) else {"result": result}
 
-        if isinstance(predictions_for_db, dict):
-            top = _pick_top_prediction(predictions_for_db)
-            if top is not None:
-                inferred_label = top.get("class") or top.get("predicted_class") or top.get("label")
-                if inferred_label is not None:
-                    result_label = str(inferred_label)
-                result_confidence = _safe_float(top.get("confidence"))
+        image_size = get_prediction_image_size(predictions_for_db)
+        if image_size["width"] is None or image_size["height"] is None:
+            predictions_for_db["image"] = get_source_image_size(image_bytes)
+
+        top = _pick_top_prediction(predictions_for_db)
+        if top is not None:
+            inferred_label = top.get("class") or top.get("predicted_class") or top.get("label")
+            if inferred_label is not None:
+                result_label = str(inferred_label)
+            result_confidence = _safe_float(top.get("confidence"))
 
         dbg_emit(
             hypothesis_id="E",
@@ -226,6 +201,16 @@ async def process_inference(
                 else None,
             },
             trace_id=trace_id,
+        )
+
+        prediction_items = predictions_for_db.get("predictions")
+        prediction_count = len(prediction_items) if isinstance(prediction_items, list) else 0
+        logger.info(
+            "roboflow.infer_succeeded trace_id=%s model_id=%s predictions_count=%s result_label=%s",
+            trace_id,
+            settings.ROBOFLOW_MODEL_ID,
+            prediction_count,
+            result_label or "none",
         )
 
         return "DONE", predictions_for_db, result_label, result_confidence, None

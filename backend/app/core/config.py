@@ -83,6 +83,16 @@ class Settings:
 
 def validate_runtime_settings() -> None:
     errors = []
+
+    model_project, separator, model_version = settings.ROBOFLOW_MODEL_ID.rpartition("/")
+    if (
+        separator != "/"
+        or not model_project.strip()
+        or not model_version.isdigit()
+        or int(model_version) <= 0
+    ):
+        errors.append("ROBOFLOW_MODEL_ID harus berformat 'project/version'")
+
     if settings.IS_PRODUCTION:
         if (
             settings.SECRET_KEY == "super-secret-key-ganti-di-production"
@@ -93,6 +103,8 @@ def validate_runtime_settings() -> None:
             errors.append("CORS_ORIGINS production tidak boleh '*'")
         if settings.ALLOWED_HOSTS == ["*"]:
             errors.append("ALLOWED_HOSTS production tidak boleh '*'")
+        if not settings.ROBOFLOW_API_KEY:
+            errors.append("ROBOFLOW_API_KEY wajib di environment production")
 
     if settings.ACCESS_TOKEN_EXPIRE_MINUTES <= 0:
         errors.append("ACCESS_TOKEN_EXPIRE_MINUTES harus lebih dari 0")

@@ -66,6 +66,11 @@ class ProductionConfigTests(TestCase):
             with self.assertRaises(RuntimeError):
                 validate_runtime_settings()
 
+    def test_rejects_invalid_roboflow_model_id(self):
+        with patch.object(settings, "ROBOFLOW_MODEL_ID", "model-without-version"):
+            with self.assertRaisesRegex(RuntimeError, "ROBOFLOW_MODEL_ID"):
+                validate_runtime_settings()
+
 
 class FakeTransactionContext:
     def __init__(self, transaction):
