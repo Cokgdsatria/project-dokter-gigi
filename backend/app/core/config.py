@@ -30,6 +30,15 @@ class Settings:
     ROBOFLOW_RETRY_BACKOFF_SECONDS: float = float(
         os.getenv("ROBOFLOW_RETRY_BACKOFF_SECONDS", "1")
     )
+    ROBOFLOW_CONFIDENCE_THRESHOLD: float = float(
+        os.getenv("ROBOFLOW_CONFIDENCE_THRESHOLD", "0.50")
+    )
+    ROBOFLOW_OVERLAP_THRESHOLD: float = float(
+        os.getenv("ROBOFLOW_OVERLAP_THRESHOLD", "0.42")
+    )
+    ROBOFLOW_RESPONSE_MASK_FORMAT: str = os.getenv(
+        "ROBOFLOW_RESPONSE_MASK_FORMAT", "polygon"
+    ).strip().lower()
     DIAGNOSIS_ASYNC_ENABLED: bool = env_bool("DIAGNOSIS_ASYNC_ENABLED")
     DIAGNOSIS_WORKER_POLL_SECONDS: float = float(
         os.getenv("DIAGNOSIS_WORKER_POLL_SECONDS", "2")
@@ -92,7 +101,14 @@ def validate_runtime_settings() -> None:
         or int(model_version) <= 0
     ):
         errors.append("ROBOFLOW_MODEL_ID harus berformat 'project/version'")
+    if not 0.0 <= settings.ROBOFLOW_CONFIDENCE_THRESHOLD <= 1.0:
+        errors.append("ROBOFLOW_CONFIDENCE_THRESHOLD harus antara 0 dan 1")
 
+    if not 0.0 <= settings.ROBOFLOW_OVERLAP_THRESHOLD <= 1.0:
+        errors.append("ROBOFLOW_OVERLAP_THRESHOLD harus antara 0 dan 1")
+
+    if settings.ROBOFLOW_RESPONSE_MASK_FORMAT not in {"polygon", "rle"}:
+        errors.append("ROBOFLOW_RESPONSE_MASK_FORMAT harus 'polygon' atau 'rle'")
     if settings.IS_PRODUCTION:
         if (
             settings.SECRET_KEY == "super-secret-key-ganti-di-production"
