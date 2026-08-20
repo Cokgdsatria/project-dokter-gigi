@@ -210,6 +210,7 @@ async def process_dental_diagnosis(
             filename=safe_filename,
             content_type=content_type,
             doctor_id=current_user.id,
+            doctor_email=current_user.email,
         )
 
         create_data: Dict[str, Any] = {

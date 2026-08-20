@@ -9,7 +9,12 @@ from PIL import Image
 
 from app.api.v1.diagnose import validate_image_content
 from app.api.v1.history import serialize_history_items
-from app.services.storage_service import _extract_signed_url, _safe_file_name
+from app.services.storage_service import (
+    _build_scan_object_path,
+    _extract_signed_url,
+    _safe_doctor_storage_folder,
+    _safe_file_name,
+)
 
 
 def make_image_bytes(image_format: str) -> bytes:
@@ -85,6 +90,45 @@ class ImageValidationTests(TestCase):
         self.assertEqual(
             _safe_file_name("rontgen.exe", "image/png"),
             "rontgen.png",
+        )
+
+    def test_doctor_storage_folder_combines_email_slug_and_immutable_id(self):
+        self.assertEqual(
+            _safe_doctor_storage_folder(
+                "dokter.staging3@gmail.com",
+                "cmsy2feup001ne645gdbfbltj",
+            ),
+            "dokter-staging3-at-gmail-com--cmsy2feup001ne645gdbfbltj",
+        )
+
+    def test_doctor_storage_folder_normalizes_unsafe_characters(self):
+        self.assertEqual(
+            _safe_doctor_storage_folder(
+                " Dokter.Staging+Demo@GMAIL.COM ",
+                "doctor-1",
+            ),
+            "dokter-staging-demo-at-gmail-com--doctor-1",
+        )
+
+    def test_doctor_storage_folder_rejects_empty_doctor_id(self):
+        with self.assertRaises(ValueError):
+            _safe_doctor_storage_folder("doctor@example.com", "  ")
+
+    @patch("app.services.storage_service.uuid.uuid4")
+    def test_scan_object_path_uses_safe_doctor_folder(self, uuid_mock):
+        uuid_mock.return_value.hex = "1a2b3c4d"
+
+        self.assertEqual(
+            _build_scan_object_path(
+                filename="rontgen 001.exe",
+                content_type="image/jpeg",
+                doctor_id="cmsy2feup001ne645gdbfbltj",
+                doctor_email="dokter.staging3@gmail.com",
+            ),
+            (
+                "rontgen/dokter-staging3-at-gmail-com--"
+                "cmsy2feup001ne645gdbfbltj/1a2b3c4d-rontgen-001.jpg"
+            ),
         )
 
     def test_extracts_signed_url_from_sdk_response(self):
